@@ -149,10 +149,73 @@ function mapResultsToImages(batchResults, imageMetadata) {
   return results;
 }
 
+function createSpinner() {
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  const colors = [
+    '\x1b[31m',
+    '\x1b[33m',
+    '\x1b[32m',
+    '\x1b[36m',
+    '\x1b[34m',
+    '\x1b[35m',
+  ];
+  const reset = '\x1b[0m';
+  const framesPerColor = 3;
+  let currentFrame = 0;
+  let frameCounter = 0;
+  let colorStep = 0;
+  const maxColorStep = (colors.length - 1) * 2;
+  
+  return {
+    next() {
+      const frame = frames[currentFrame];
+      currentFrame = (currentFrame + 1) % frames.length;
+      frameCounter++;
+      
+      if (frameCounter % framesPerColor === 0) {
+        colorStep = (colorStep + 1) % maxColorStep;
+      }
+      
+      let colorIndex;
+      if (colorStep < colors.length) {
+        colorIndex = colorStep;
+      } else {
+        colorIndex = maxColorStep - colorStep;
+      }
+      
+      const color = colors[colorIndex];
+      return `${color}${frame}${reset}`;
+    }
+  };
+}
+
+function clearLines(count) {
+  for (let i = 0; i < count; i++) {
+    process.stdout.write('\x1b[1A\x1b[2K');
+  }
+}
+
+function formatBatchStatus(batchInfo, batchInfos, batch, status) {
+  const batchIndex = batchInfo.batchIndex !== undefined 
+    ? batchInfo.batchIndex 
+    : batchInfos.findIndex(b => b.batchId === batchInfo.batchId) + 1;
+  const statusLine = `Batch ${batchIndex}/${batchInfos.length} (${batchInfo.batchId}): ${status}`;
+  let output = statusLine;
+  
+  if (batch && batch.request_counts) {
+    output += ` | Total: ${batch.request_counts.total || 0}, Completed: ${batch.request_counts.completed || 0}, Failed: ${batch.request_counts.failed || 0}`;
+  }
+  
+  return output;
+}
+
 async function waitForAllBatchesCompletion(batchInfos) {
   const pollInterval = 30000;
+  const updateInterval = 100;
   const batchStatuses = new Map();
   const completedBatches = new Set();
+  const spinner = createSpinner();
+  let statusLines = [];
   
   for (const batchInfo of batchInfos) {
     batchStatuses.set(batchInfo.batchId, {
@@ -161,6 +224,29 @@ async function waitForAllBatchesCompletion(batchInfos) {
       lastStatus: null,
       batch: null,
     });
+    statusLines.push(null);
+  }
+  
+  function updateDisplay() {
+    clearLines(statusLines.length);
+    for (let i = 0; i < batchInfos.length; i++) {
+      const batchInfo = batchInfos[i];
+      const statusData = batchStatuses.get(batchInfo.batchId);
+      
+      if (!statusData) {
+        continue;
+      }
+      
+      const isCompleted = completedBatches.has(batchInfo.batchId);
+      const spinnerChar = isCompleted ? '✓' : spinner.next();
+      const currentStatus = statusData.status || 'checking...';
+      const displayStatus = isCompleted ? currentStatus : `${currentStatus} ${spinnerChar}`;
+      
+      statusLines[i] = formatBatchStatus(batchInfo, batchInfos, statusData.batch, displayStatus);
+      if (statusLines[i]) {
+        process.stdout.write(statusLines[i] + '\n');
+      }
+    }
   }
   
   while (completedBatches.size < batchInfos.length) {
@@ -185,29 +271,37 @@ async function waitForAllBatchesCompletion(batchInfos) {
       const status = batch.status;
       const statusData = batchStatuses.get(batchInfo.batchId);
       
-      if (status !== statusData.lastStatus) {
-        console.log(`\nBatch ${batchInfo.batchIndex}/${batchInfos.length} (${batchInfo.batchId}): ${status}`);
-        statusData.lastStatus = status;
-        
-        if (batch.request_counts) {
-          console.log(`  Total: ${batch.request_counts.total || 0}`);
-          console.log(`  Completed: ${batch.request_counts.completed || 0}`);
-          console.log(`  Failed: ${batch.request_counts.failed || 0}`);
-        }
-      }
-      
       statusData.status = status;
       statusData.batch = batch;
+      
+      if (status !== statusData.lastStatus) {
+        statusData.lastStatus = status;
+      }
       
       if (status === 'completed' || status === 'failed' || status === 'cancelled' || status === 'expired') {
         completedBatches.add(batchInfo.batchId);
       }
     }
     
+    updateDisplay();
+    
     if (completedBatches.size < batchInfos.length) {
-      console.log(`Waiting ${pollInterval / 1000} seconds before next check...`);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      const startTime = Date.now();
+      const endTime = startTime + pollInterval;
+      
+      while (Date.now() < endTime && completedBatches.size < batchInfos.length) {
+        await new Promise(resolve => setTimeout(resolve, updateInterval));
+        updateDisplay();
+      }
+    } else {
+      break;
     }
+  }
+  
+  clearLines(statusLines.length);
+  for (const statusData of batchStatuses.values()) {
+    const batch = statusData.batch;
+    console.log(formatBatchStatus(statusData, batchInfos, batch, batch.status));
   }
   
   return Array.from(batchStatuses.values()).map(statusData => {
