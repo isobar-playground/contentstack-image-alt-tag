@@ -11,6 +11,7 @@
     "step4": "node scripts/step4-generate-alt-tags.js",
     "step5": "node scripts/step5-wait-for-batch.js",
     "step6": "node scripts/step6-update-contentstack.js",
+    "reset": "rm -f outputs/*.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
