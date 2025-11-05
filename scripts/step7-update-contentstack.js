@@ -14,30 +14,22 @@ async function updateAssetDescription(stack, assetUid, locale, description, dryR
     
     const asset = await stack.asset(assetUid).fetch({ locale });
     
-    const existingTags = asset.metadata?.tags || [];
+    const existingTags = asset.tags || [];
     const tagUids = existingTags.map(tag => typeof tag === 'string' ? tag : tag.uid || tag);
-    const hasAiTag = tagUids.some(tag => tag === 'ai' || (typeof tag === 'object' && tag.name === 'ai'));
+    const hasAiTag = tagUids.includes('ai');
     
-    let tagsToAdd = existingTags;
+    asset.description = description;
+    
     if (!hasAiTag) {
-      tagsToAdd = [...existingTags, { uid: 'ai' }];
+      asset.tags = [...tagUids, 'ai'];
     }
     
-    const updateData = {
-      description: description,
-      metadata: {
-        ...asset.metadata,
-        tags: tagsToAdd,
-      },
-    };
-    
-    await stack.asset(assetUid).update({
-      asset: updateData,
-    }, { locale });
+    await asset.update({ locale });
     
     return { success: true };
   } catch (error) {
-    return { success: false, error: error.message };
+    console.error(`  Update error:`, error.message);
+    return { success: false, error: error.message || String(error) };
   }
 }
 
@@ -72,6 +64,7 @@ async function main() {
       if (result.success) {
         const statusText = dryRun ? 'Would update ✓' : 'Updated ✓';
         console.log(`  ${statusText}`);
+        console.log(`  Description: ${item.altText}`);
         results.push({
           uid: item.uid,
           filename: item.filename,
