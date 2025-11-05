@@ -8,6 +8,7 @@ dotenv.config();
 
 const {
   OPENAI_API_KEY,
+  OPENAI_MODEL,
 } = process.env;
 
 let openai = null;
@@ -126,7 +127,7 @@ async function prepareBatchRequests(images, instructions, stack) {
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
-          model: 'gpt-4o',
+          model: OPENAI_MODEL || 'gpt-4o',
           messages: [
             {
               role: 'system',
