@@ -10,7 +10,9 @@
     "step3": "node scripts/step3-filter-fields.js",
     "step4": "node scripts/step4-generate-alt-tags.js",
     "step5": "node scripts/step5-wait-for-batch.js",
-    "step6": "node scripts/step6-update-contentstack.js",
+    "step6": "node scripts/step6-confirm-updates.js",
+    "step7": "node scripts/step7-update-contentstack.js",
+    "all": "npm run step1 && npm run step2 && npm run step3 && npm run step4 && npm run step5 && npm run step6 && npm run step7",
     "reset": "rm -f outputs/*.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
