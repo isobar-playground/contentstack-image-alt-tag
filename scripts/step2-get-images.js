@@ -14,7 +14,7 @@ async function selectLanguages(languages) {
     choices: languages.map(lang => ({
       title: `${lang.name} (${lang.code})`,
       value: lang,
-      selected: false,
+      selected: true,
     })),
     instructions: false,
   });
