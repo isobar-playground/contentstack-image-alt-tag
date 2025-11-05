@@ -199,7 +199,10 @@ function formatBatchStatus(batchInfo, batchInfos, batch, status) {
   const batchIndex = batchInfo.batchIndex !== undefined 
     ? batchInfo.batchIndex 
     : batchInfos.findIndex(b => b.batchId === batchInfo.batchId) + 1;
-  const statusLine = `Batch ${batchIndex}/${batchInfos.length} (${batchInfo.batchId}): ${status}`;
+  const statusPart = status.includes(' ') ? status.split(' ')[0] : status;
+  const restPart = status.includes(' ') ? ' ' + status.split(' ').slice(1).join(' ') : '';
+  const paddedStatus = statusPart.padEnd(11) + restPart;
+  const statusLine = `Batch ${batchIndex}/${batchInfos.length} (${batchInfo.batchId}): ${paddedStatus}`;
   let output = statusLine;
   
   if (batch && batch.request_counts) {
@@ -240,7 +243,8 @@ async function waitForAllBatchesCompletion(batchInfos) {
       const isCompleted = completedBatches.has(batchInfo.batchId);
       const spinnerChar = isCompleted ? '✓' : spinner.next();
       const currentStatus = statusData.status || 'checking...';
-      const displayStatus = isCompleted ? currentStatus : `${currentStatus} ${spinnerChar}`;
+      const paddedStatus = currentStatus.padEnd(11);
+      const displayStatus = isCompleted ? paddedStatus : `${paddedStatus} ${spinnerChar}`;
       
       statusLines[i] = formatBatchStatus(batchInfo, batchInfos, statusData.batch, displayStatus);
       if (statusLines[i]) {
