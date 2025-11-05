@@ -24,6 +24,15 @@ OPENAI_API_KEY=your_openai_key
 
 ## Running the Scripts
 
+### Run all steps at once:
+```bash
+npm run all
+```
+
+This will automatically reset the output directory and run all steps sequentially.
+
+### Run individual steps:
+
 Run the scripts in sequential order:
 
 ```bash
@@ -33,6 +42,7 @@ npm run step3
 npm run step4
 npm run step5
 npm run step6
+npm run step7
 ```
 
 Each step performs a specific operation:
@@ -41,5 +51,12 @@ Each step performs a specific operation:
 - **step3**: Filter images by fields
 - **step4**: Generate ALT tags using OpenAI
 - **step5**: Wait for batch processing
-- **step6**: Update Contentstack with generated ALT tags
+- **step6**: Confirm and select which images to update
+- **step7**: Update Contentstack with generated ALT tags
 
+### Utility scripts:
+
+- **reset**: Clear all JSON and JSONL files from the outputs directory
+```bash
+npm run reset
+```
