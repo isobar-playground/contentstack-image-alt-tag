@@ -20,6 +20,7 @@ CONTENTSTACK_API_KEY=your_api_key
 CONTENTSTACK_MANAGEMENT_TOKEN=your_management_token
 CONTENTSTACK_HOST=your_host (optional)
 OPENAI_API_KEY=your_openai_key
+BATCH_SIZE=5 (optional, default: 5)
 ```
 
 ## Running the Scripts
