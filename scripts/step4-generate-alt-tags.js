@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { getStack, getEntryTitle } from './contentstack-client.js';
 import { readJsonFile, writeJsonFile, readTextFile, getInstructionsPath, writeTextFile, createReadStream } from './utils/file-utils.js';
-import { isDryRun } from './utils/arg-utils.js';
+import { isDryRun, getBatchSize } from './utils/arg-utils.js';
 
 dotenv.config();
 
@@ -97,12 +97,13 @@ async function buildUsageContext(stack, image) {
   return usageContexts.join('. ');
 }
 
-async function prepareBatchRequests(images, instructions, stack) {
+async function prepareBatchRequests(images, instructions, stack, startIndex = 0) {
   const requests = [];
   const imageMetadata = [];
 
   for (let i = 0; i < images.length; i++) {
     const image = images[i];
+    const globalIndex = startIndex + i;
     console.log(`\n[${i + 1}/${images.length}] Preparing request for: ${image.filename || image.uid}`);
     
     const usageContext = await buildUsageContext(stack, image);
@@ -123,7 +124,7 @@ async function prepareBatchRequests(images, instructions, stack) {
       }
 
       const request = {
-        custom_id: `image-${image.uid}-${i}`,
+        custom_id: `image-${image.uid}-${globalIndex}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
@@ -180,16 +181,17 @@ async function prepareBatchRequests(images, instructions, stack) {
   return { requests, imageMetadata };
 }
 
-function createJsonlFile(requests) {
+function createJsonlFile(requests, batchIndex) {
   const lines = requests.map(req => JSON.stringify(req));
   const content = lines.join('\n') + '\n';
-  const jsonlPath = writeTextFile('batch-requests.jsonl', content);
-  return jsonlPath;
+  const filename = `batch-requests-${batchIndex}.jsonl`;
+  const jsonlPath = writeTextFile(filename, content);
+  return { jsonlPath, filename };
 }
 
-async function uploadFile(filename) {
+async function uploadFile(filepath) {
   const file = await openai.files.create({
-    file: createReadStream(filename),
+    file: createReadStream(filepath),
     purpose: 'batch',
   });
   return file.id;
@@ -216,43 +218,80 @@ async function main() {
     const images = await getFilteredImages();
     console.log(`\nFound ${images.length} images to process`);
     
+    const BATCH_SIZE = getBatchSize();
+    const totalBatches = Math.ceil(images.length / BATCH_SIZE);
+    console.log(`\nDividing into ${totalBatches} batches of ${BATCH_SIZE} images each`);
+    
     const instructions = await getInstructions();
     const stack = getStack();
     
-    console.log('\nPreparing batch requests...');
-    const { requests, imageMetadata } = await prepareBatchRequests(images, instructions, stack);
+    const allBatches = [];
+    const allImageMetadata = [];
     
-    const validRequests = requests.filter((_, index) => imageMetadata[index].customId !== null);
-    console.log(`\nPrepared ${validRequests.length}/${images.length} valid requests`);
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const startIdx = batchIndex * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, images.length);
+      const batchImages = images.slice(startIdx, endIdx);
+      
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`Processing batch ${batchIndex + 1}/${totalBatches} (images ${startIdx + 1}-${endIdx})`);
+      console.log(`${'='.repeat(60)}`);
+      
+      console.log('\nPreparing batch requests...');
+      const { requests, imageMetadata } = await prepareBatchRequests(batchImages, instructions, stack, startIdx);
+      
+      const validRequests = requests.filter((_, index) => imageMetadata[index].customId !== null);
+      console.log(`\nPrepared ${validRequests.length}/${batchImages.length} valid requests`);
+      
+      if (validRequests.length === 0) {
+        console.warn(`⚠️  No valid requests in batch ${batchIndex + 1}, skipping...`);
+        allImageMetadata.push(...imageMetadata);
+        continue;
+      }
+      
+      console.log('\nCreating JSONL file...');
+      const { jsonlPath, filename } = createJsonlFile(validRequests, batchIndex);
+      console.log(`JSONL file created: ${jsonlPath}`);
+      
+      console.log('\nUploading file to OpenAI...');
+      const fileId = await uploadFile(filename);
+      console.log(`File uploaded with ID: ${fileId}`);
+      
+      console.log('\nCreating batch...');
+      const batchId = await createBatch(fileId);
+      console.log(`Batch created with ID: ${batchId}`);
+      
+      allBatches.push({
+        batchId,
+        fileId,
+        batchIndex: batchIndex + 1,
+        totalRequests: validRequests.length,
+        imageStartIndex: startIdx,
+        imageEndIndex: endIdx,
+      });
+      
+      allImageMetadata.push(...imageMetadata);
+    }
     
-    if (validRequests.length === 0) {
-      console.error('No valid requests to process');
+    if (allBatches.length === 0) {
+      console.error('No valid batches to process');
       process.exit(1);
     }
     
-    console.log('\nCreating JSONL file...');
-    const jsonlPath = createJsonlFile(validRequests);
-    console.log(`JSONL file created: ${jsonlPath}`);
-    
-    console.log('\nUploading file to OpenAI...');
-    const fileId = await uploadFile('batch-requests.jsonl');
-    console.log(`File uploaded with ID: ${fileId}`);
-    
-    console.log('\nCreating batch...');
-    const batchId = await createBatch(fileId);
-    console.log(`Batch created with ID: ${batchId}`);
-    
     const batchInfo = {
-      batchId,
-      fileId,
-      totalRequests: validRequests.length,
+      batches: allBatches,
+      totalBatches: allBatches.length,
+      totalRequests: allImageMetadata.filter(m => m.customId !== null).length,
+      totalImages: images.length,
       createdAt: new Date().toISOString(),
-      imageMetadata,
+      imageMetadata: allImageMetadata,
     };
     
     const batchInfoPath = writeJsonFile('batch-info.json', batchInfo);
-    console.log(`\nBatch info saved to ${batchInfoPath}`);
-    console.log(`\nBatch processing started. Run step5 to monitor the batch status.`);
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`Batch info saved to ${batchInfoPath}`);
+    console.log(`Created ${allBatches.length} batches`);
+    console.log(`Batch processing started. Run step5 to monitor the batch status.`);
   } catch (error) {
     console.error('Error:', error);
     process.exit(1);

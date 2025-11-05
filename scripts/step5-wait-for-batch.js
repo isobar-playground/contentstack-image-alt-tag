@@ -149,46 +149,76 @@ function mapResultsToImages(batchResults, imageMetadata) {
   return results;
 }
 
-async function waitForBatchCompletion(batchId) {
+async function waitForAllBatchesCompletion(batchInfos) {
   const pollInterval = 30000;
-  let lastStatus = null;
-  let isComplete = false;
+  const batchStatuses = new Map();
+  const completedBatches = new Set();
   
-  while (!isComplete) {
-    const batch = await checkBatchStatus(batchId);
-    const status = batch.status;
+  for (const batchInfo of batchInfos) {
+    batchStatuses.set(batchInfo.batchId, {
+      ...batchInfo,
+      status: null,
+      lastStatus: null,
+      batch: null,
+    });
+  }
+  
+  while (completedBatches.size < batchInfos.length) {
+    const checkPromises = [];
     
-    if (status !== lastStatus) {
-      console.log(`\nBatch status: ${status}`);
-      lastStatus = status;
+    for (const batchInfo of batchInfos) {
+      if (completedBatches.has(batchInfo.batchId)) {
+        continue;
+      }
       
-      if (batch.request_counts) {
-        console.log(`  Total: ${batch.request_counts.total || 0}`);
-        console.log(`  Completed: ${batch.request_counts.completed || 0}`);
-        console.log(`  Failed: ${batch.request_counts.failed || 0}`);
+      checkPromises.push(
+        checkBatchStatus(batchInfo.batchId).then(batch => ({
+          batchInfo,
+          batch,
+        }))
+      );
+    }
+    
+    const results = await Promise.all(checkPromises);
+    
+    for (const { batchInfo, batch } of results) {
+      const status = batch.status;
+      const statusData = batchStatuses.get(batchInfo.batchId);
+      
+      if (status !== statusData.lastStatus) {
+        console.log(`\nBatch ${batchInfo.batchIndex}/${batchInfos.length} (${batchInfo.batchId}): ${status}`);
+        statusData.lastStatus = status;
+        
+        if (batch.request_counts) {
+          console.log(`  Total: ${batch.request_counts.total || 0}`);
+          console.log(`  Completed: ${batch.request_counts.completed || 0}`);
+          console.log(`  Failed: ${batch.request_counts.failed || 0}`);
+        }
+      }
+      
+      statusData.status = status;
+      statusData.batch = batch;
+      
+      if (status === 'completed' || status === 'failed' || status === 'cancelled' || status === 'expired') {
+        completedBatches.add(batchInfo.batchId);
       }
     }
     
-    if (status === 'completed') {
-      isComplete = true;
-      return batch;
-    }
-    
-    if (status === 'failed' || status === 'cancelled' || status === 'expired') {
-      isComplete = true;
-      return batch;
-    }
-    
-    if (status === 'validating' || status === 'in_progress' || status === 'finalizing') {
+    if (completedBatches.size < batchInfos.length) {
       console.log(`Waiting ${pollInterval / 1000} seconds before next check...`);
       await new Promise(resolve => setTimeout(resolve, pollInterval));
-    } else {
-      throw new Error(`Unexpected batch status: ${status}`);
     }
   }
+  
+  return Array.from(batchStatuses.values()).map(statusData => ({
+    ...statusData.batchInfo,
+    batch: statusData.batch,
+  }));
 }
 
-async function processBatchResults(batch, imageMetadata) {
+async function processBatchResults(batchData, imageMetadata) {
+  const { batch, imageStartIndex, imageEndIndex } = batchData;
+  const batchImageMetadata = imageMetadata.slice(imageStartIndex, imageEndIndex);
   let batchResults = [];
   let tokenUsage = null;
   
@@ -197,16 +227,16 @@ async function processBatchResults(batch, imageMetadata) {
       throw new Error('Batch completed but no output file ID found');
     }
     
-    console.log('\nDownloading batch results...');
+    console.log(`\nDownloading results for batch ${batchData.batchIndex}...`);
     const resultsContent = await downloadResults(batch.output_file_id);
     batchResults = parseJsonl(resultsContent);
     console.log(`Downloaded ${batchResults.length} results`);
     
     tokenUsage = calculateTokenUsage(batchResults);
-    const results = mapResultsToImages(batchResults, imageMetadata);
+    const results = mapResultsToImages(batchResults, batchImageMetadata);
     return { results, tokenUsage };
   } else if (batch.status === 'failed' || batch.status === 'cancelled' || batch.status === 'expired') {
-    console.log(`\nBatch ended with status: ${batch.status}`);
+    console.log(`\nBatch ${batchData.batchIndex} ended with status: ${batch.status}`);
     
     if (batch.output_file_id) {
       console.log('Partial results available, downloading...');
@@ -216,7 +246,7 @@ async function processBatchResults(batch, imageMetadata) {
         console.log(`Downloaded ${batchResults.length} partial results`);
         
         tokenUsage = calculateTokenUsage(batchResults);
-        const results = mapResultsToImages(batchResults, imageMetadata);
+        const results = mapResultsToImages(batchResults, batchImageMetadata);
         console.log('⚠️  Using partial results');
         return { results, tokenUsage };
       } catch (error) {
@@ -231,6 +261,32 @@ async function processBatchResults(batch, imageMetadata) {
   }
 }
 
+async function processAllBatchesResults(batchesData, imageMetadata) {
+  const allResults = [];
+  let totalTokenUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+  };
+  
+  for (const batchData of batchesData) {
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`Processing results for batch ${batchData.batchIndex}/${batchesData.length}`);
+    console.log(`${'='.repeat(60)}`);
+    
+    const { results, tokenUsage } = await processBatchResults(batchData, imageMetadata);
+    allResults.push(...results);
+    
+    if (tokenUsage) {
+      totalTokenUsage.inputTokens += tokenUsage.inputTokens;
+      totalTokenUsage.outputTokens += tokenUsage.outputTokens;
+      totalTokenUsage.totalTokens += tokenUsage.totalTokens;
+    }
+  }
+  
+  return { results: allResults, tokenUsage: totalTokenUsage };
+}
+
 async function main() {
   try {
     const dryRun = isDryRun();
@@ -243,8 +299,8 @@ async function main() {
     console.log('Loading batch information...');
     const batchInfo = await getBatchInfo();
     
-    if (!batchInfo.batchId) {
-      console.error('Error: batch-info.json does not contain batchId');
+    if (!batchInfo.batches || !Array.isArray(batchInfo.batches) || batchInfo.batches.length === 0) {
+      console.error('Error: batch-info.json does not contain batches array');
       process.exit(1);
     }
     
@@ -253,25 +309,27 @@ async function main() {
       process.exit(1);
     }
     
-    const batchId = batchInfo.batchId;
+    const batches = batchInfo.batches;
     const imageMetadata = batchInfo.imageMetadata;
     
-    console.log(`\nMonitoring batch: ${batchId}`);
-    console.log(`Total requests: ${batchInfo.totalRequests}`);
+    console.log(`\nMonitoring ${batches.length} batches`);
+    console.log(`Total requests: ${batchInfo.totalRequests || 'unknown'}`);
+    console.log(`Total images: ${batchInfo.totalImages || imageMetadata.length}`);
     
-    const batch = await waitForBatchCompletion(batchId);
+    const batchesData = await waitForAllBatchesCompletion(batches);
     
     console.log('\nProcessing batch results...');
-    const { results, tokenUsage } = await processBatchResults(batch, imageMetadata);
+    const { results, tokenUsage } = await processAllBatchesResults(batchesData, imageMetadata);
     
     const outputPath = writeJsonFile('alt-tags.json', results);
     
     const successCount = results.filter(r => r.altText).length;
-    console.log(`\nGenerated ALT for ${successCount}/${results.length} images`);
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`Generated ALT for ${successCount}/${results.length} images`);
     console.log(`Results have been saved to ${outputPath}`);
     
     if (tokenUsage) {
-      console.log('\n📊 Token Usage:');
+      console.log('\n📊 Total Token Usage:');
       console.log(`  Input tokens: ${tokenUsage.inputTokens.toLocaleString()}`);
       console.log(`  Output tokens: ${tokenUsage.outputTokens.toLocaleString()}`);
       console.log(`  Total tokens: ${tokenUsage.totalTokens.toLocaleString()}`);
