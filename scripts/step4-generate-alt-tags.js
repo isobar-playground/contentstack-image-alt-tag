@@ -47,27 +47,6 @@ function addResizeParams(url) {
   }
 }
 
-async function fetchImageAsBase64(imageUrl) {
-  try {
-    const resizedUrl = addResizeParams(imageUrl);
-    const response = await fetch(resizedUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64Image = buffer.toString('base64');
-    
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    return {
-      base64: base64Image,
-      mimeType: contentType,
-    };
-  } catch (error) {
-    throw new Error(`Error fetching image: ${error.message}`);
-  }
-}
-
 async function buildUsageContext(stack, image) {
   if (!image.usages || image.usages.length === 0) {
     return null;
@@ -113,8 +92,6 @@ async function prepareBatchRequests(images, instructions, stack, startIndex = 0)
     }
 
     try {
-      const imageData = await fetchImageAsBase64(image.url);
-      
       let userMessage = 'Generate an ALT tag for this image.';
       if (image.localeName) {
         userMessage += `\n\nGenerate the ALT tag in the language: ${image.localeName}`;
@@ -122,6 +99,8 @@ async function prepareBatchRequests(images, instructions, stack, startIndex = 0)
       if (usageContext) {
         userMessage += `\n\nContext: ${usageContext}`;
       }
+
+      const resizedUrl = addResizeParams(image.url);
 
       const request = {
         custom_id: `image-${image.uid}-${globalIndex}`,
@@ -144,7 +123,7 @@ async function prepareBatchRequests(images, instructions, stack, startIndex = 0)
                 {
                   type: 'image_url',
                   image_url: {
-                    url: `data:${imageData.mimeType};base64,${imageData.base64}`,
+                    url: resizedUrl,
                   },
                 },
               ],
