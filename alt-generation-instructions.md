@@ -10,5 +10,6 @@ The ALT tag should:
 6. Be written in the language corresponding to the content language
 7. Not start with words like "Image showing" or "Photo depicting"
 8. Be useful for people using screen readers
+9. Be plain text in a single line (no line breaks, no formatting)
 
 If the image is decorative, return an empty string.
