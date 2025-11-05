@@ -210,10 +210,15 @@ async function waitForAllBatchesCompletion(batchInfos) {
     }
   }
   
-  return Array.from(batchStatuses.values()).map(statusData => ({
-    ...statusData.batchInfo,
-    batch: statusData.batch,
-  }));
+  return Array.from(batchStatuses.values()).map(statusData => {
+    const { batch, ...batchInfo } = statusData;
+    delete batchInfo.status;
+    delete batchInfo.lastStatus;
+    return {
+      ...batchInfo,
+      batch,
+    };
+  });
 }
 
 async function processBatchResults(batchData, imageMetadata) {
