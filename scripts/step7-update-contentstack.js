@@ -16,12 +16,12 @@ async function updateAssetDescription(stack, assetUid, locale, description, dryR
     
     const existingTags = asset.tags || [];
     const tagUids = existingTags.map(tag => typeof tag === 'string' ? tag : tag.uid || tag);
-    const hasAiTag = tagUids.includes('ai');
+    const hasAiTag = tagUids.includes('ai description');
     
     asset.description = description;
     
     if (!hasAiTag) {
-      asset.tags = [...tagUids, 'ai'];
+      asset.tags = [...tagUids, 'ai description'];
     }
     
     await asset.update({ locale });
