@@ -164,6 +164,8 @@ async function analyzeImageUsages(images) {
     console.log(`  Found ${references.length} usages`);
     
     const usages = [];
+    let skippedReferences = 0;
+    let skippedPathInfos = 0;
     
     for (const ref of references) {
       const contentTypeUid = ref.content_type_uid || ref._content_type_uid;
@@ -172,6 +174,7 @@ async function analyzeImageUsages(images) {
       
       if (!contentTypeUid || !entryUid) {
         console.log(`  Skipping reference - missing contentTypeUid or entryUid`);
+        skippedReferences++;
         continue;
       }
       
@@ -184,6 +187,7 @@ async function analyzeImageUsages(images) {
       
       if (pathInfos.length === 0) {
         console.log(`  Warning: Asset ${image.uid} not found in entry ${entryUid} fields`);
+        skippedPathInfos++;
         continue;
       }
       
@@ -243,6 +247,10 @@ async function analyzeImageUsages(images) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
     
+    if (usages.length === 0 && references.length > 0) {
+      console.log(`  ⚠️  Image ${image.uid} has ${references.length} references but 0 usages (skipped: ${skippedReferences} refs, ${skippedPathInfos} pathInfos)`);
+    }
+    
     image.usages = usages;
   }
   
@@ -285,12 +293,20 @@ function filterImages(images, selectedKeys) {
   
   return images.filter(image => {
     if (!image.usages || image.usages.length === 0) {
+      console.log(`  ⚠️  Filtering out image ${image.uid} (${image.filename}) - no usages`);
       return false;
     }
     
-    return image.usages.some(usage => {
+    const hasMatchingKey = image.usages.some(usage => {
       return selectedKeysSet.has(usage.key);
     });
+    
+    if (!hasMatchingKey) {
+      const usageKeys = image.usages.map(u => u.key).join(', ');
+      console.log(`  ⚠️  Filtering out image ${image.uid} (${image.filename}) - no matching keys. Usage keys: [${usageKeys}], Selected keys: [${Array.from(selectedKeysSet).join(', ')}]`);
+    }
+    
+    return hasMatchingKey;
   });
 }
 
