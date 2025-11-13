@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Tool to generate and update ALT tags for images in Contentstack",
   "type": "module",
-  "main": "index.js",
   "scripts": {
     "step1": "node scripts/step1-get-languages.js",
     "step2": "node scripts/step2-get-images.js",
