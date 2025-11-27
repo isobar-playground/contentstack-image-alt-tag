@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import prompts from 'prompts';
 import { getStack, getEntryTitle } from './contentstack-client.js';
 import { readJsonFile, writeJsonFile, readTextFile, getInstructionsPath, writeTextFile, createReadStream } from './utils/file-utils.js';
 import { isDryRun, getBatchSize } from './utils/arg-utils.js';
@@ -185,6 +186,26 @@ async function createBatch(fileId) {
   return batch.id;
 }
 
+async function selectImagesToProcess(images) {
+  const response = await prompts({
+    type: 'multiselect',
+    name: 'selected',
+    message: 'Select images to process (use space to toggle, arrows to navigate):',
+    choices: images.map(image => ({
+      title: `${image.filename} (${image.locale})`,
+      value: image,
+      selected: true,
+    })),
+    instructions: false,
+  });
+
+  if (!response.selected || response.selected.length === 0) {
+    return [];
+  }
+
+  return response.selected;
+}
+
 async function main() {
   try {
     const dryRun = isDryRun();
@@ -194,8 +215,16 @@ async function main() {
       return;
     }
     
-    const images = await getFilteredImages();
-    console.log(`\nFound ${images.length} images to process`);
+    const allImages = await getFilteredImages();
+    console.log(`\nFound ${allImages.length} images to process`);
+
+    const images = await selectImagesToProcess(allImages);
+    console.log(`\nSelected ${images.length} images to process`);
+    
+    if (images.length === 0) {
+      console.log('No images selected. Exiting.');
+      return;
+    }
     
     const BATCH_SIZE = getBatchSize();
     const totalBatches = Math.ceil(images.length / BATCH_SIZE);
