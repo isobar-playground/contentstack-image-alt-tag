@@ -91,7 +91,7 @@ export default function Step3ImageReview() {
                 }
             };
 
-            const concurrencyLimit = 10; // Limiting concurrent API calls to avoid rate limits
+            const concurrencyLimit = 10;
 
             await pLimit(concurrencyLimit, imagesToAnalyze, async (img) => {
                 try {
@@ -336,14 +336,17 @@ export default function Step3ImageReview() {
                                                                                     )}
                                                                                 >
                                                                                     <div className="aspect-square relative bg-muted">
-                                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                                        <img
-                                                                                            src={image.url}
-                                                                                            alt={image.filename}
-                                                                                            className="object-contain w-full h-full p-2"
-                                                                                            loading="lazy"
-                                                                                        />
-                                                                                        <div className="absolute top-2 right-2">
+                                                                                        import Image from 'next/image';
+                                                                                        
+                                                                                                                                                                                
+                                                                                                                                                                                                                                                                            <Image
+                                                                                                                                                                                      src={image.url}
+                                                                                                                                                                                      alt={image.filename || "Image"}
+                                                                                                                                                                                      width={150}
+                                                                                                                                                                                      height={150}
+                                                                                                                                                                                      className="object-contain w-full h-full p-2"
+                                                                                                                                                                                      loading="lazy"
+                                                                                                                                                                                    />                                                                                        <div className="absolute top-2 right-2">
                                                                                             {isActive ? (
                                                                                                 <CheckCircle2 className="h-5 w-5 text-blue-500 bg-card rounded-full" />
                                                                                             ) : (

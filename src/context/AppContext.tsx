@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { AppState, AppConfig, Language, ContentType, ImageAsset, BatchInfo } from '@/lib/types';
-import { DEFAULT_MASTER_PROMPT } from '@/lib/types';
+import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
 
 interface AppContextType {
     state: AppState;
@@ -40,13 +40,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [state, setState] = useState<AppState>(defaultState);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from local storage on mount
+
     useEffect(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Merge with default state to ensure new fields are present
+    
                 setState((prev) => ({ ...prev, ...parsed }));
             }
         } catch (e) {
@@ -56,7 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Save to local storage on change
+
     useEffect(() => {
         if (isLoaded) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -91,12 +91,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             step: 3,
             images: prev.images.map(img => ({
                 ...img,
-                status: 'active', // Reset all to active
-                generatedAltText: undefined, // Clear generated texts
+                status: 'active',
+                generatedAltText: undefined,
                 updateStatus: undefined,
                 updateError: undefined,
             })),
-            batchInfo: null, // Clear batch info
+            batchInfo: null,
         }));
     };
 
@@ -106,7 +106,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     if (!isLoaded) {
-        return null; // Or a loading spinner
+        return null;
     }
 
     return (

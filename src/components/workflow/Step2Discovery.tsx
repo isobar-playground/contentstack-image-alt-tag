@@ -20,7 +20,7 @@ export default function Step2Discovery() {
     const [loadingContentTypes, setLoadingContentTypes] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
 
-    // Load languages on mount if not already loaded
+
     useEffect(() => {
         const fetchLanguages = async () => {
             setLoadingLanguages(true);
@@ -28,7 +28,7 @@ export default function Step2Discovery() {
                 const langs = await getLanguages(state.config);
                 setLanguages(langs);
 
-                // Automatically select all languages
+
                 setState(prev => ({
                     ...prev,
                     selectedLanguages: langs
@@ -46,7 +46,7 @@ export default function Step2Discovery() {
         }
     }, [state.config, languages.length, setState]);
 
-    // Handle Language Selection
+
     const toggleLanguage = (lang: Language) => {
         setState(prev => {
             const exists = prev.selectedLanguages.some(l => l.code === lang.code);
@@ -58,7 +58,7 @@ export default function Step2Discovery() {
         });
     };
 
-    // Fetch Content Types when languages are selected
+
     const handleDiscoverContentTypes = useCallback(async () => {
         if (state.selectedLanguages.length === 0) {
             setContentTypes([]);
@@ -77,14 +77,10 @@ export default function Step2Discovery() {
             const uniqueTypes = Array.from(allTypes.values()).sort((a, b) => a.uid.localeCompare(b.uid));
             setContentTypes(uniqueTypes);
 
-            // Auto-select image types if not already selected
+
             const imageTypes = uniqueTypes.filter(t => t.uid.startsWith('image/'));
 
-            // Only update if different to avoid loops/unnecessary updates
-            // But here we want to ensure image types are selected by default when discovered
-            // We can just add them to existing selection if not present? 
-            // Or just reset selection to image types? The original logic was replacing selection.
-            // Let's stick to original logic: auto-select image types.
+
             setState(prev => ({ ...prev, selectedContentTypes: imageTypes }));
 
         } catch (error) {
@@ -95,7 +91,7 @@ export default function Step2Discovery() {
         }
     }, [state.selectedLanguages, setContentTypes, setLoadingContentTypes, state.config, setState]);
 
-    // Auto-discovery effect with debounce
+
     useEffect(() => {
         const timer = setTimeout(() => {
             handleDiscoverContentTypes();
@@ -105,7 +101,7 @@ export default function Step2Discovery() {
     }, [state.selectedLanguages, handleDiscoverContentTypes]);
 
 
-    // Handle Content Type Selection
+
     const toggleContentType = (type: ContentType) => {
         setState(prev => {
             const exists = prev.selectedContentTypes.some(t => t.uid === type.uid);
@@ -117,7 +113,7 @@ export default function Step2Discovery() {
         });
     };
 
-    // Fetch Images
+
     const handleFetchImages = async () => {
         if (state.selectedContentTypes.length === 0) {
             toast.error('Please select at least one content type.');
@@ -131,12 +127,11 @@ export default function Step2Discovery() {
 
             for (const lang of state.selectedLanguages) {
                 const images = await getAssets(state.config, lang.code, typeUids);
-                // Add locale info to images
                 const imagesWithLocale = images.map((img) => ({
                     ...img,
                     locale: lang.code,
                     localeName: lang.name,
-                    status: 'active', // Default status
+                    status: 'active',
                 })) as ImageAsset[];
                 allImages = [...allImages, ...imagesWithLocale];
             }
@@ -147,7 +142,7 @@ export default function Step2Discovery() {
                 toast.info('No images found without description.');
             } else {
                 toast.success(`Found ${allImages.length} images.`);
-                setStep(3); // Move to next step
+                setStep(3);
             }
         } catch (error) {
             toast.error('Failed to fetch images.');

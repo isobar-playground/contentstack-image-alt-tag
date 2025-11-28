@@ -14,7 +14,7 @@ export default function Step5ResultReview() {
     const { state, setState, setStep } = useAppContext();
     const confirmDialog = useConfirmDialog();
 
-    // Filter only active images that have generated text
+
     const activeImages = state.images.filter(img => img.status === 'active' && img.generatedAltText !== undefined);
 
     const handleUpdateAltText = (uid: string, newText: string) => {
@@ -62,7 +62,7 @@ export default function Step5ResultReview() {
             title: 'Regenerate Alt Tags',
             description: 'Are you sure you want to regenerate alt tags? This will discard the current results and start a new batch.',
             onConfirm: () => {
-                // Clear batch info and generated alt texts
+
                 setState(prev => ({
                     ...prev,
                     batchInfo: null,
@@ -104,13 +104,14 @@ export default function Step5ResultReview() {
                                     <div key={image.uid} className="bg-card border rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-4">
                                         <div className="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
                                             <div className="aspect-square relative bg-muted rounded-md overflow-hidden border">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
-                                                    src={image.url}
-                                                    alt={image.filename}
-                                                    className="object-contain w-full h-full"
-                                                    loading="lazy"
-                                                />
+                                                    <Image
+                                                      src={image.url}
+                                                      alt={image.filename || "Image"}
+                                                      width={150} // Provide appropriate width
+                                                      height={150} // Provide appropriate height
+                                                      className="object-contain w-full h-full"
+                                                      loading="lazy"
+                                                    />
                                             </div>
                                             <div className="mt-2 text-xs text-gray-500 truncate" title={image.filename}>
                                                 {image.filename}

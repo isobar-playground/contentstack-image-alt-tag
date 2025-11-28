@@ -1,6 +1,7 @@
 import { client } from '@contentstack/management';
 import { Asset } from '@contentstack/management/types/stack/asset';
 import { ImageAsset } from './types';
+import { parseContentstackError } from './utils';
 
 interface ContentstackConfig {
     apiKey: string;
@@ -55,8 +56,8 @@ export async function getContentTypes(config: ContentstackConfig, languageCode: 
                 contentTypes.add(asset.content_type);
             }
         });
-    } catch (error) {
-        console.error('Error discovering content types:', error);
+    } catch (error: unknown) {
+        console.error('Error discovering content types:', parseContentstackError(error));
         throw error;
     }
 
@@ -123,8 +124,8 @@ export async function getAssetReferences(config: ContentstackConfig, assetUid: s
         if (response && Array.isArray(response.references)) return response.references;
         if (response && Array.isArray(response.items)) return response.items;
         return [];
-    } catch (error) {
-        console.error(`Error while fetching references for asset ${assetUid}:`, error);
+    } catch (error: unknown) {
+        console.error(`Error while fetching references for asset ${assetUid}:`, parseContentstackError(error));
         return [];
     }
 }
@@ -144,8 +145,8 @@ export async function getEntryTitle(config: ContentstackConfig, contentTypeUid: 
         }
 
         return entryUid;
-    } catch (error) {
-        console.error(`Error fetching entry ${entryUid}:`, error);
+    } catch (error: unknown) {
+        console.error(`Error fetching entry ${entryUid}:`, parseContentstackError(error));
         return entryUid;
     }
 }
@@ -158,8 +159,8 @@ export async function getContentTypeInfo(config: ContentstackConfig, contentType
             uid: contentType.uid,
             title: contentType.title || contentTypeUid,
         };
-    } catch (error) {
-        console.error(`Error fetching content type ${contentTypeUid}:`, error);
+    } catch (error: unknown) {
+        console.error(`Error fetching content type ${contentTypeUid}:`, parseContentstackError(error));
         return {
             uid: contentTypeUid,
             title: contentTypeUid,
@@ -186,8 +187,8 @@ export async function updateAssetDescription(config: ContentstackConfig, assetUi
 
         return { success: true };
     } catch (error: unknown) {
-        const err = error as Error;
-        console.error(`Error updating asset ${assetUid}:`, err);
-        return { success: false, error: err.message || String(err) };
+        const errMessage = parseContentstackError(error);
+        console.error(`Error updating asset ${assetUid}:`, errMessage);
+        return { success: false, error: errMessage };
     }
 };

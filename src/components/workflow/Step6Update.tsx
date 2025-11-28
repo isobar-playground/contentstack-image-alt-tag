@@ -19,7 +19,7 @@ export default function Step6Update() {
     const [progress, setProgress] = useState(0);
     const [completed, setCompleted] = useState(false);
 
-    // Filter images that need update
+
     const imagesToUpdate = state.images.filter(img => img.status === 'active' && img.generatedAltText);
 
     const handleStartUpdate = async () => {
@@ -29,7 +29,7 @@ export default function Step6Update() {
         let processed = 0;
         const total = imagesToUpdate.length;
 
-        // Process sequentially to avoid rate limits
+
         for (const image of imagesToUpdate) {
             try {
                 setState(prev => ({
@@ -62,7 +62,7 @@ export default function Step6Update() {
             } finally {
                 processed++;
                 setProgress(Math.round((processed / total) * 100));
-                // Small delay to be nice to the API
+
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
         }

@@ -14,7 +14,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle, FileText, RefreshCw } from 'lucide-react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { BatchInfo, DEFAULT_MASTER_PROMPT } from '@/lib/types';
+import { BatchInfo } from '@/lib/types';
+import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import '@mdxeditor/editor/style.css';
 import '../../mdxeditor-custom.css';
@@ -84,7 +85,6 @@ export default function Step4BatchProcessing() {
 
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Get active images
     const activeImages = state.images.filter(img => img.status === 'active');
 
     const stopPolling = useCallback(() => {
@@ -102,9 +102,9 @@ export default function Step4BatchProcessing() {
             const lines = content.trim().split('\n');
             const results = lines.map(line => JSON.parse(line));
 
-            // Map results back to images
-            const resultMap = new Map<string, string>(); // Explicitly type resultMap
-            results.forEach((res: { custom_id: string; response?: { body?: { choices?: { message?: { content: string } }[] } } }) => { // More specific type for res
+
+            const resultMap = new Map<string, string>();
+            results.forEach((res: { custom_id: string; response?: { body?: { choices?: { message?: { content: string } }[] } } }) => {
                 const uid = res.custom_id.replace('image-', '');
                 const altText = res.response?.body?.choices?.[0]?.message?.content?.trim() || '';
                 resultMap.set(uid, altText);
@@ -118,18 +118,17 @@ export default function Step4BatchProcessing() {
                         return {
                             ...img,
                             generatedAltText: altText,
-                            // If alt text is empty, mark as ignored so it won't be updated
                             status: altText ? img.status : 'ignored',
                         };
                     }
                     return img;
                 }),
-                batchInfo: { ...batchInfo, status: 'completed' } // Ensure status is completed
+                batchInfo: { ...batchInfo, status: 'completed' }
             }));
 
             toast.success('Results downloaded and mapped!');
             setDownloading(false);
-            setStep(5); // Move to review
+            setStep(5);
 
         } catch (error) {
             console.error('Error downloading results:', error);
@@ -154,7 +153,7 @@ export default function Step4BatchProcessing() {
                     batchId: batch.id,
                     fileId: batch.input_file_id,
                     createdAt: new Date(batch.created_at * 1000).toISOString(),
-                    status: batch.status as BatchInfo['status'], // Fix #1
+                    status: batch.status as BatchInfo['status'],
                     totalRequests: total,
                     completedRequests: completed,
                     failedRequests: failed,
@@ -176,7 +175,7 @@ export default function Step4BatchProcessing() {
             } catch (error) {
                 console.error('Error polling batch:', error);
             }
-        }, 10000); // Poll every 10 seconds
+        }, 10000);
     }, [state.config, setState, stopPolling, handleDownloadResults]);
 
     useEffect(() => {
@@ -197,18 +196,18 @@ export default function Step4BatchProcessing() {
                 userMessage += `\n\nGenerate the ALT tag in the language: ${image.localeName}`;
             }
 
-            // Add context from usages
+
             if (image.usages && image.usages.length > 0) {
                 const context = image.usages.map(u => `Used in content type ${u.contentTypeTitle} named ${u.key.split(' - ')[1] || 'Unknown'}`).join('. ');
                 userMessage += `\n\nContext: ${context}`;
             }
 
-            // Brand context
-            if (brandName) { // Use local brandName state
+
+            if (brandName) {
                 userMessage += `\n\nBrand: ${brandName}`;
             }
 
-            // Resize params (simple append)
+
             const imageUrl = new URL(image.url);
             imageUrl.searchParams.set('height', '720');
             imageUrl.searchParams.set('fit', 'scale-down');
@@ -238,7 +237,7 @@ export default function Step4BatchProcessing() {
     };
 
     const handleStartBatch = async () => {
-        // Update config with edited prompt, brandName, and OpenAI settings
+
         const updatedConfig = {
             ...state.config,
             masterPrompt,
@@ -254,21 +253,21 @@ export default function Step4BatchProcessing() {
 
         setPreparing(true);
         try {
-            // 1. Prepare JSONL
+
             const requests = prepareRequests();
             const jsonlContent = requests.map(req => JSON.stringify(req)).join('\n');
 
             setPreparing(false);
             setUploading(true);
 
-            // 2. Upload File
+
             const fileName = `batch-requests-${new Date().getTime()}.jsonl`;
             const fileId = await uploadBatchFile(updatedConfig, jsonlContent, fileName);
 
             setUploading(false);
             setCreatingBatch(true);
 
-            // 3. Create Batch
+
             const batchId = await createBatch(updatedConfig, fileId);
 
             const initialBatchInfo: BatchInfo = {
@@ -318,13 +317,15 @@ export default function Step4BatchProcessing() {
                                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
                                         {activeImages.map((image) => (
                                             <div key={image.uid} className="aspect-square relative bg-card rounded border overflow-hidden">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
-                                                    src={image.url}
-                                                    alt={image.filename}
-                                                    className="object-contain w-full h-full p-1"
-                                                    title={image.filename}
-                                                />
+
+                                        <Image
+                                          src={image.url}
+                                          alt={image.filename || "Image"}
+                                          width={150} // Provide appropriate width
+                                          height={150} // Provide appropriate height
+                                          className="object-contain w-full h-full p-1"
+                                          title={image.filename}
+                                        />
                                             </div>
                                         ))}
                                     </div>

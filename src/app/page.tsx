@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,8 @@ import { Loader2, ChevronDown, RotateCcw } from 'lucide-react';
 
 import { getEnvironments } from '@/app/actions';
 import { ContentstackAPIError } from '@/lib/types';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { parseContentstackError } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 
 import {
@@ -21,11 +22,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Step2Discovery from '@/components/workflow/Step2Discovery';
-import Step3ImageReview from '@/components/workflow/Step3ImageReview';
-import Step4BatchProcessing from '@/components/workflow/Step4BatchProcessing';
-import Step5ResultReview from '@/components/workflow/Step5ResultReview';
-import Step6Update from '@/components/workflow/Step6Update';
+// Dynamically import workflow steps for code splitting
+const LazyStep2Discovery = lazy(() => import('@/components/workflow/Step2Discovery'));
+const LazyStep3ImageReview = lazy(() => import('@/components/workflow/Step3ImageReview'));
+const LazyStep4BatchProcessing = lazy(() => import('@/components/workflow/Step4BatchProcessing'));
+const LazyStep5ResultReview = lazy(() => import('@/components/workflow/Step5ResultReview'));
+const LazyStep6Update = lazy(() => import('@/components/workflow/Step6Update'));
+
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 export default function Home() {
@@ -38,7 +41,6 @@ export default function Home() {
     const [isTyping, setIsTyping] = useState(false);
     const [envError, setEnvError] = useState<string>('');
 
-    // Sync local state with context state on mount
     useEffect(() => {
         setFormData(state.config);
     }, [state.config]);
@@ -54,9 +56,9 @@ export default function Home() {
 
             if (apiKey && token) {
                 setIsTyping(true);
-                setEnvError(''); // Clear error when typing starts
+                setEnvError('');
             } else {
-                setEnvError(''); // Clear error if keys are incomplete
+                setEnvError('');
                 setIsTyping(false);
             }
         }
@@ -84,40 +86,7 @@ export default function Home() {
             setEnvironments(envs);
         } catch (error: unknown) {
             console.error('Error fetching environments:', error);
-            let message = 'Failed to fetch environments.';
-
-            try {
-                if (typeof error === 'object' && error !== null) {
-                    const apiError = error as ContentstackAPIError;
-                    if (apiError.message && apiError.message.includes('errorMessage')) {
-                        try {
-                            const parsed = JSON.parse(apiError.message);
-                            if (parsed.errorMessage) {
-                                message = parsed.errorMessage;
-                            } else if (parsed.errors && Array.isArray(parsed.errors) && parsed.errors.length > 0) {
-                                message = parsed.errors.map((err: unknown) => {
-                                    if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
-                                        return err.message;
-                                    }
-                                    return JSON.stringify(err);
-                                }).join(', ');
-                            }
-                        } catch (_: unknown) {
-                            message = apiError.message;
-                        }
-                    } else if (apiError.errorMessage) {
-                        message = apiError.errorMessage;
-                    } else if (apiError.message) {
-                        message = apiError.message;
-                    }
-                } else {
-                    message = String(error);
-                }
-            } catch (e) {
-                console.error('Error while processing error object:', e);
-                message = 'An unknown error occurred.';
-            }
-
+            const message = parseContentstackError(error);
             setEnvError(message);
             setEnvironments([]);
         } finally {
@@ -126,7 +95,6 @@ export default function Home() {
         }
     }, [formData, setLoadingEnvs, setEnvError, setEnvironments, setIsTyping]);
 
-    // Debounce logic for fetching environments
     useEffect(() => {
         const timer = setTimeout(() => {
             if (formData.contentstackApiKey && formData.contentstackManagementToken) {
@@ -154,7 +122,7 @@ export default function Home() {
         }
 
         updateConfig(formData);
-        setStep(2); // Move to Discovery step
+        setStep(2);
         toast.success('Configuration saved! Starting workflow...');
 
     };
@@ -163,17 +131,17 @@ export default function Home() {
     const renderStep = () => {
         switch (state.step) {
             case 2:
-                return <Step2Discovery />;
+                return <LazyStep2Discovery />;
             case 3:
-                return <Step3ImageReview />;
+                return <LazyStep3ImageReview />;
             case 4:
-                return <Step4BatchProcessing />;
+                return <LazyStep4BatchProcessing />;
             case 5:
-                return <Step5ResultReview />;
+                return <LazyStep5ResultReview />;
             case 6:
-                return <Step6Update />;
+                return <LazyStep6Update />;
             default:
-                return <Step2Discovery />;
+                return <LazyStep2Discovery />;
         }
     };
 
@@ -183,7 +151,7 @@ export default function Home() {
             description: 'Are you sure you want to reset the workflow? This will clear current progress but keep your API keys.',
             onConfirm: () => {
                 resetWorkflow();
-                setStep(2); // Ensure it goes back to step 2 after reset
+                setStep(2);
             }
         });
     };
@@ -209,7 +177,6 @@ export default function Home() {
         });
     };
 
-    // Conditional rendering based on API key presence
     const isConfigured = state.config.contentstackApiKey && state.config.contentstackManagementToken && state.config.contentstackEnvironment;
 
     if (!isConfigured) {
@@ -292,7 +259,7 @@ export default function Home() {
             </div>
         );
     } else {
-        // Render Workflow Page content
+
         return (
             <div className="min-h-screen flex flex-col">
                 <header className="bg-background border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
@@ -322,7 +289,9 @@ export default function Home() {
                     </div>
                 </header>
                 <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
-                    {renderStep()}
+                    <Suspense fallback={<div>Loading workflow step...</div>}>
+                        {renderStep()}
+                    </Suspense>
                 </main>
             </div>
         );
