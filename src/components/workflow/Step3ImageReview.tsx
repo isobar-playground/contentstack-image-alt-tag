@@ -30,8 +30,8 @@ async function pLimit<T, R>(concurrency: number, items: T[], iteratorFn: (item: 
             const promise = run(items[currentItemIndex], currentItemIndex);
             executing.push(promise);
             await promise;
-            executing.splice(executing.indexOf(promise), 1); 
-            await processNext(); 
+            executing.splice(executing.indexOf(promise), 1);
+            await processNext();
         }
     };
 
@@ -91,7 +91,7 @@ export default function Step3ImageReview() {
                 }
             };
 
-            const concurrencyLimit = 5; // Limiting concurrent API calls to avoid rate limits
+            const concurrencyLimit = 10; // Limiting concurrent API calls to avoid rate limits
 
             await pLimit(concurrencyLimit, imagesToAnalyze, async (img) => {
                 try {
