@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getLanguages, getContentTypes, getAssets } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle2 } from 'lucide-react';
@@ -46,7 +44,7 @@ export default function Step2Discovery() {
         if (languages.length === 0) {
             fetchLanguages();
         }
-    }, [state.config, languages.length]);
+    }, [state.config, languages.length, setState]);
 
     // Handle Language Selection
     const toggleLanguage = (lang: Language) => {
@@ -61,7 +59,7 @@ export default function Step2Discovery() {
     };
 
     // Fetch Content Types when languages are selected
-    const handleDiscoverContentTypes = async () => {
+    const handleDiscoverContentTypes = useCallback(async () => {
         if (state.selectedLanguages.length === 0) {
             setContentTypes([]);
             return;
@@ -95,7 +93,7 @@ export default function Step2Discovery() {
         } finally {
             setLoadingContentTypes(false);
         }
-    };
+    }, [state.selectedLanguages, setContentTypes, setLoadingContentTypes, state.config, setState]);
 
     // Auto-discovery effect with debounce
     useEffect(() => {
@@ -104,7 +102,7 @@ export default function Step2Discovery() {
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [state.selectedLanguages]);
+    }, [state.selectedLanguages, handleDiscoverContentTypes]);
 
 
     // Handle Content Type Selection

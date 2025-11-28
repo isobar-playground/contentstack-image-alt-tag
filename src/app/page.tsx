@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ export default function Home() {
     setFormData((prev) => ({ ...prev, contentstackEnvironment: value }));
   };
 
-  const fetchEnvironments = async (apiKey: string, token: string) => {
+  const fetchEnvironments = useCallback(async (apiKey: string, token: string) => {
     if (!apiKey || !token) {
       setLoadingEnvs(false);
       setIsTyping(false);
@@ -73,7 +73,7 @@ export default function Home() {
       });
       setEnvironments(envs);
       // Removed auto-selection to keep it initially empty as requested
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching environments:', error);
       let message = 'Failed to fetch environments.';
 
@@ -101,7 +101,7 @@ export default function Home() {
       setLoadingEnvs(false);
       setIsTyping(false);
     }
-  };
+  }, [formData, setLoadingEnvs, setEnvError, setEnvironments, setIsTyping]);
 
   // Debounce logic for fetching environments
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function Home() {
     }, 2000); // 2 seconds debounce
 
     return () => clearTimeout(timer);
-  }, [formData.contentstackApiKey, formData.contentstackManagementToken]);
+  }, [formData.contentstackApiKey, formData.contentstackManagementToken, fetchEnvironments]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

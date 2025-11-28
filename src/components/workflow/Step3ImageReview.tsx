@@ -97,7 +97,7 @@ export default function Step3ImageReview() {
         };
 
         analyze();
-    }, []); // Empty dependency array - only run once on mount
+    }, [setState, state.config, state.images]);
 
     // Toggle image status
     const toggleImageStatus = (uid: string) => {
