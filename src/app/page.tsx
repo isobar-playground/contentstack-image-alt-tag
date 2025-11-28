@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 import { getEnvironments } from '@/app/actions';
+import { AppConfig, ContentstackAPIError } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function Home() {
@@ -77,23 +78,39 @@ export default function Home() {
       console.error('Error fetching environments:', error);
       let message = 'Failed to fetch environments.';
 
-      // Try to parse the error message from the stringified JSON if it matches the user's log format
-      try {
-        if (error.message && error.message.includes('errorMessage')) {
-          const parsed = JSON.parse(error.message);
-          if (parsed.errorMessage) {
-            message = parsed.errorMessage;
-          } else if (parsed.errors) {
-            // Handle specific field errors if needed, or just generic
-            message = 'Invalid configuration. Please check your keys.';
+    try {
+      if (typeof error === 'object' && error !== null) {
+        // Attempt to cast to a more specific type if possible
+        const apiError = error as ContentstackAPIError;
+
+        // Check for custom error message format
+        if (apiError.message && apiError.message.includes('errorMessage')) {
+          try {
+            const parsed = JSON.parse(apiError.message);
+            if (parsed.errorMessage) {
+              message = parsed.errorMessage;
+            } else if (parsed.errors && Array.isArray(parsed.errors) && parsed.errors.length > 0) {
+              // Assuming errors is an array of objects with message property
+              message = parsed.errors.map((err: any) => err.message || JSON.stringify(err)).join(', ');
+            }
+          } catch (parseError) {
+            // If JSON parsing fails, treat the message as plain text
+            message = apiError.message;
           }
-        } else if (error.errorMessage) {
-          message = error.errorMessage;
+        } else if (apiError.errorMessage) {
+          // If a direct errorMessage property exists
+          message = apiError.errorMessage;
+        } else if (apiError.message) {
+          // Fallback to standard Error message
+          message = apiError.message;
         }
-      } catch (e) {
-        // Fallback if parsing fails
-        console.error('Error parsing error message', e);
+      } else {
+        message = String(error);
       }
+    } catch (e) {
+      console.error('Error while processing error object:', e);
+      message = 'An unknown error occurred.';
+    }
 
       setEnvError(message);
       setEnvironments([]); // Clear environments on error

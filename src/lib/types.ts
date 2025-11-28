@@ -90,35 +90,40 @@ Does the image contain readable, meaningful text relevant to the brand context?
 **STEP 2: THE EXCLUSION CHECK (Safety & Relevance)**
 If Step 1 was "NO", return strictly an empty string (no characters) if ANY of the following are true:
 
-* **Decorative/Layout:**
-    * Large empty space (negative space) designed for text overlay.
-    * Purely decorative frames, borders, or separator lines.
-    * Abstract textures (gradients, blurs) without a defined product.
+*   **Decorative/Layout:**
+    *   Large empty space (negative space) designed for text overlay.
+    *   Purely decorative frames, borders, or separator lines.
+    *   Abstract textures (gradients, blurs) without a defined product.
 
-* **Ambiguous/Irrelevant Person:**
-    * The image shows a person or body part that is blurry, obscured, or heavily cropped (e.g., just a back, an arm holding a bottle).
-    * **CRITICAL EXCEPTION:** Do NOT exclude the image if it shows a **cosmetic result** (e.g., nails with polish, lips with lipstick, eye makeup, or hair color swatch). These are informational.
+*   **Ambiguous/Irrelevant Person:**
+    *   The image shows a person or body part that is blurry, obscured, or heavily cropped (e.g., just a back, an arm holding a bottle).
+    *   **CRITICAL EXCEPTION:** Do NOT exclude the image if it shows a **cosmetic result** (e.g., nails with polish, lips with lipstick, eye makeup, or hair color swatch). These are informational.
 
-* **Unknown/Corrupted:**
-    * The content is too dark, corrupted, or visually ambiguous to identify with certainty.
+*   **Unknown/Corrupted:**
+    *   The content is too dark, corrupted, or visually ambiguous to identify with certainty.
 
-* **Action:** If the image matches the exclusion criteria (and isn't an exception) -> Output strictly an empty string.
+*   **Action:** If the image matches the exclusion criteria (and isn't an exception) -> Output strictly an empty string.
 
 **STEP 3: GENERATION RULES (STRICT LOGIC)**
 If the image passed the checks, follow this priority order:
 
 1.  **DEFINE THE OBJECT:**
-    * Start with the specific product type, body part (for swatches), or subject.
-    * *Examples:* "Origen Yucatan Midnight Amber body mist bottle...", "Hand showing red nail polish..."
+    *   Start with the specific product type, body part (for swatches), or subject.
+    *   *Examples:* "Origen Yucatan Midnight Amber body mist bottle...", "Hand showing red nail polish..."
 
 2.  **CONTEXTUAL TEXT FILTERING:**
-    * **Text ON the product:** Transcribe ONLY the Brand, Product Name, and Shade. IGNORE fine print/ingredients.
-    * **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
+    *   **Text ON the product:** Transcribe ONLY the Brand, Product Name, and Shade. IGNORE fine print/ingredients.
+    *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
 
 3.  **VISUAL SUPPORT:**
-    * Mention key visual elements (e.g., "with amber stones").
-    * If describing a model/swatch, focus solely on the cosmetic attribute (e.g., "glossy finish", "volumized lashes").
+    *   Mention key visual elements (e.g., "with amber stones").
+    *   If describing a model/swatch, focus solely on the cosmetic attribute (e.g., "glossy finish", "volumized lashes").
 
 4.  **FINAL ASSEMBLY:**
-    * Combine: [Object] + [Visual Context] + "Text: [Layout Text/Headline]".
-    * Keep it concise (under 150 chars preferred).`
+    *   Combine: [Object] + [Visual Context] + "Text: [Layout Text/Headline]".
+    *   Keep it concise (under 150 chars preferred).`
+
+export interface ContentstackAPIError extends Error {
+    errorMessage?: string;
+    errors?: Array<{ message: string }>;
+}
