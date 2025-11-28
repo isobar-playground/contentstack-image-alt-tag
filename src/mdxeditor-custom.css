@@ -39,3 +39,33 @@
 .mdxeditor-root-contenteditable > *:last-child {
   margin-bottom: 0 !important;
 }
+
+/* Dark mode overrides */
+.dark .mdxeditor-root-contenteditable {
+  color: var(--foreground) !important;
+}
+
+.dark .mdxeditor-root-contenteditable h1,
+.dark .mdxeditor-root-contenteditable h2,
+.dark .mdxeditor-root-contenteditable h3,
+.dark .mdxeditor-root-contenteditable h4,
+.dark .mdxeditor-root-contenteditable h5,
+.dark .mdxeditor-root-contenteditable h6 {
+  color: var(--foreground) !important;
+}
+
+.dark .mdxeditor-root-contenteditable p,
+.dark .mdxeditor-root-contenteditable li,
+.dark .mdxeditor-root-contenteditable span {
+  color: var(--foreground) !important;
+}
+
+.dark .mdxeditor-root-contenteditable blockquote {
+  color: var(--muted-foreground) !important;
+  border-left-color: var(--border) !important;
+}
+
+.dark .mdxeditor-root-contenteditable code {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+}

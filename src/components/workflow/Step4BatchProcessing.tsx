@@ -44,7 +44,7 @@ const MDXEditor = dynamic(
                 <MDXEditor
                     markdown={markdown}
                     onChange={onChange}
-                    contentEditableClassName="prose prose-sm max-w-none min-h-[300px] p-4"
+                    contentEditableClassName="prose dark:prose-invert prose-sm max-w-none min-h-[300px] p-4"
                     plugins={[
                         headingsPlugin(),
                         listsPlugin(),
@@ -319,14 +319,14 @@ export default function Step4BatchProcessing() {
                                         {activeImages.map((image) => (
                                             <div key={image.uid} className="aspect-square relative bg-card rounded border overflow-hidden">
 
-                                        <Image
-                                          src={image.url}
-                                          alt={image.filename || "Image"}
-                                          width={150}
-                                          height={150}
-                                          className="object-contain w-full h-full p-1"
-                                          title={image.filename}
-                                        />
+                                                <Image
+                                                    src={image.url}
+                                                    alt={image.filename || "Image"}
+                                                    width={150}
+                                                    height={150}
+                                                    className="object-contain w-full h-full p-1"
+                                                    title={image.filename}
+                                                />
                                             </div>
                                         ))}
                                     </div>
