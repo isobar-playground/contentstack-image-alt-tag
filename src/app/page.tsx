@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,7 @@ import { toast } from 'sonner';
 import { Loader2, ChevronDown, RotateCcw } from 'lucide-react';
 
 import { getEnvironments } from '@/app/actions';
-import { AppConfig, ContentstackAPIError } from '@/lib/types';
+import { ContentstackAPIError } from '@/lib/types';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 
@@ -30,7 +29,6 @@ import Step6Update from '@/components/workflow/Step6Update';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 export default function Home() {
-    const router = useRouter();
     const { state, updateConfig, setStep, resetWorkflow, resetToImageReview, fullReset } = useAppContext();
     const confirmDialog = useConfirmDialog();
 
@@ -82,11 +80,6 @@ export default function Home() {
                 ...formData,
                 contentstackApiKey: apiKey,
                 contentstackManagementToken: token,
-
-
-
-
-
             });
             setEnvironments(envs);
         } catch (error: unknown) {
@@ -102,9 +95,14 @@ export default function Home() {
                             if (parsed.errorMessage) {
                                 message = parsed.errorMessage;
                             } else if (parsed.errors && Array.isArray(parsed.errors) && parsed.errors.length > 0) {
-                                message = parsed.errors.map((err: any) => err.message || JSON.stringify(err)).join(', ');
+                                message = parsed.errors.map((err: unknown) => {
+                                    if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
+                                        return err.message;
+                                    }
+                                    return JSON.stringify(err);
+                                }).join(', ');
                             }
-                        } catch (parseError) {
+                        } catch (_: unknown) {
                             message = apiError.message;
                         }
                     } else if (apiError.errorMessage) {

@@ -4,8 +4,6 @@ import * as contentstack from '@/lib/contentstack';
 import * as openai from '@/lib/openai';
 import { AppConfig } from '@/lib/types';
 
-// Contentstack Actions
-
 export async function getLanguages(config: AppConfig) {
     return contentstack.getLanguages({
         apiKey: config.contentstackApiKey,
@@ -53,8 +51,10 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
         return [];
     }
 
-    const usages = [];
-    const processedKeys = new Set();
+    const uniqueContentTypeUids = new Set<string>();
+    const uniqueEntryRefs = new Map<string, { contentTypeUid: string, entryUid: string, locale: string }>();
+
+    const processedReferenceKeys = new Set<string>();
 
     for (const ref of references) {
         const contentTypeUid = ref.content_type_uid;
@@ -63,28 +63,60 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
 
         if (!contentTypeUid || !entryUid) continue;
 
-        // Avoid duplicates
         const key = `${contentTypeUid}:${entryUid}:${refLocale}`;
-        if (processedKeys.has(key)) continue;
-        processedKeys.add(key);
+        if (processedReferenceKeys.has(key)) continue;
+        processedReferenceKeys.add(key);
 
-        const contentTypeInfo = await contentstack.getContentTypeInfo(csConfig, contentTypeUid);
-        const entryTitle = await contentstack.getEntryTitle(csConfig, contentTypeUid, entryUid, refLocale);
+        uniqueContentTypeUids.add(contentTypeUid);
+        uniqueEntryRefs.set(key, { contentTypeUid, entryUid, locale: refLocale });
+    }
 
-        usages.push({
-            contentTypeUid,
-            contentTypeTitle: contentTypeInfo.title,
-            entryUid,
-            locale: refLocale,
-            fieldName: 'Reference', // Simplified, we don't traverse deep to find exact field name for now
-            key: `${contentTypeInfo.title} - ${entryTitle}`,
-        });
+    const contentTypeInfoPromises = Array.from(uniqueContentTypeUids).map(async (uid) => {
+        const info = await contentstack.getContentTypeInfo(csConfig, uid);
+        return { uid, info };
+    });
+    const contentTypeInfoResults = await Promise.all(contentTypeInfoPromises);
+    const contentTypeInfoMap = new Map<string, { uid: string; title: string }>();
+    contentTypeInfoResults.forEach(item => contentTypeInfoMap.set(item.uid, item.info));
+
+    const entryTitlePromises = Array.from(uniqueEntryRefs.values()).map(async ({ contentTypeUid, entryUid, locale: refLocale }) => {
+        const title = await contentstack.getEntryTitle(csConfig, contentTypeUid, entryUid, refLocale);
+        return { key: `${contentTypeUid}:${entryUid}:${refLocale}`, title };
+    });
+    const entryTitleResults = await Promise.all(entryTitlePromises);
+    const entryTitleMap = new Map<string, string>();
+    entryTitleResults.forEach(item => entryTitleMap.set(item.key, item.title));
+
+    const usages = [];
+
+    for (const ref of references) {
+        const contentTypeUid = ref.content_type_uid;
+        const entryUid = ref.entry_uid;
+        const refLocale = ref.locale || locale;
+
+        if (!contentTypeUid || !entryUid) continue;
+
+        const key = `${contentTypeUid}:${entryUid}:${refLocale}`;
+        if (!processedReferenceKeys.has(key)) continue; 
+        processedReferenceKeys.delete(key);
+
+        const contentTypeInfo = contentTypeInfoMap.get(contentTypeUid);
+        const entryTitle = entryTitleMap.get(key);
+
+        if (contentTypeInfo && entryTitle) {
+            usages.push({
+                contentTypeUid,
+                contentTypeTitle: contentTypeInfo.title,
+                entryUid,
+                locale: refLocale,
+                fieldName: 'Reference', // Simplified, we don't traverse deep to find exact field name for now
+                key: `${contentTypeInfo.title} - ${entryTitle}`,
+            });
+        }
     }
 
     return usages;
 }
-
-// OpenAI Actions
 
 export async function uploadBatchFile(config: AppConfig, fileContent: string, fileName: string) {
     return openai.uploadBatchFile({ apiKey: config.openaiApiKey }, fileContent, fileName);

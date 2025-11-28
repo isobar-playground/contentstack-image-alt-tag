@@ -14,6 +14,36 @@ import { CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { ImageAsset, ImageUsage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+async function pLimit<T, R>(concurrency: number, items: T[], iteratorFn: (item: T) => Promise<R>): Promise<R[]> {
+    const results: R[] = [];
+    const executing: Promise<void>[] = [];
+    let index = 0;
+
+    const run = async (item: T, i: number): Promise<void> => {
+        const promise = iteratorFn(item);
+        results[i] = await promise;
+    };
+
+    const processNext = async (): Promise<void> => {
+        if (index < items.length) {
+            const currentItemIndex = index++;
+            const promise = run(items[currentItemIndex], currentItemIndex);
+            executing.push(promise);
+            await promise;
+            executing.splice(executing.indexOf(promise), 1); 
+            await processNext(); 
+        }
+    };
+
+    for (let i = 0; i < concurrency && i < items.length; i++) {
+        executing.push(processNext());
+    }
+
+    await Promise.all(executing);
+    return results;
+}
+
+
 export default function Step3ImageReview() {
     const { state, setState, setStep } = useAppContext();
 
@@ -23,9 +53,7 @@ export default function Step3ImageReview() {
     const analysisStartedRef = useRef(false);
     const startTimeRef = useRef<number>(0);
 
-    // Check if we need to analyze usages
     useEffect(() => {
-        // Prevent re-running if analysis has already started
         if (analysisStartedRef.current) {
             return;
         }
@@ -36,7 +64,6 @@ export default function Step3ImageReview() {
             return;
         }
 
-        // Mark that analysis has started
         analysisStartedRef.current = true;
 
         const analyze = async () => {
@@ -45,52 +72,52 @@ export default function Step3ImageReview() {
             let completed = 0;
             const total = imagesToAnalyze.length;
 
-            // Process in chunks of 10 for faster processing
-            const chunkSize = 10;
-            for (let i = 0; i < total; i += chunkSize) {
-                const chunk = imagesToAnalyze.slice(i, i + chunkSize);
+            const updateProgress = () => {
+                completed++;
+                const progressPercent = Math.round((completed / total) * 100);
+                setProgress(progressPercent);
 
-                await Promise.all(chunk.map(async (img) => {
-                    try {
-                        const usages = await analyzeImageUsage(state.config, img.uid, img.locale);
+                if (completed > 0 && completed < total) {
+                    const elapsedTime = Date.now() - startTimeRef.current;
+                    const avgTimePerImage = elapsedTime / completed;
+                    const remainingImages = total - completed;
+                    const estimatedMs = avgTimePerImage * remainingImages;
 
-                        setState(prev => ({
-                            ...prev,
-                            images: prev.images.map(pImg => {
-                                if (pImg.uid === img.uid) {
-                                    const hasUsages = usages && usages.length > 0;
-                                    return {
-                                        ...pImg,
-                                        usages: usages as ImageUsage[],
-                                        status: hasUsages ? 'active' : 'ignored' // Default to ignored if no usages
-                                    };
-                                }
-                                return pImg;
-                            })
-                        }));
-                    } catch (error) {
-                        console.error(`Error analyzing image ${img.uid}:`, error);
-                    } finally {
-                        completed++;
-                        const progressPercent = Math.round((completed / total) * 100);
-                        setProgress(progressPercent);
+                    const minutes = Math.floor(estimatedMs / 60000);
+                    const seconds = Math.floor((estimatedMs % 60000) / 1000);
+                    setEstimatedTimeRemaining(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+                } else if (completed === total) {
+                    setEstimatedTimeRemaining('00:00');
+                }
+            };
 
-                        // Calculate estimated time remaining
-                        if (completed > 0 && completed < total) {
-                            const elapsedTime = Date.now() - startTimeRef.current;
-                            const avgTimePerImage = elapsedTime / completed;
-                            const remainingImages = total - completed;
-                            const estimatedMs = avgTimePerImage * remainingImages;
+            const concurrencyLimit = 5; // Limiting concurrent API calls to avoid rate limits
 
-                            const minutes = Math.floor(estimatedMs / 60000);
-                            const seconds = Math.floor((estimatedMs % 60000) / 1000);
-                            setEstimatedTimeRemaining(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-                        } else if (completed === total) {
-                            setEstimatedTimeRemaining('00:00');
-                        }
-                    }
-                }));
-            }
+            await pLimit(concurrencyLimit, imagesToAnalyze, async (img) => {
+                try {
+                    const usages = await analyzeImageUsage(state.config, img.uid, img.locale);
+
+                    setState(prev => ({
+                        ...prev,
+                        images: prev.images.map(pImg => {
+                            if (pImg.uid === img.uid) {
+                                const hasUsages = usages && usages.length > 0;
+                                return {
+                                    ...pImg,
+                                    usages: usages as ImageUsage[],
+                                    status: hasUsages ? 'active' : 'ignored'
+                                };
+                            }
+                            return pImg;
+                        })
+                    }));
+                } catch (error) {
+                    console.error(`Error analyzing image ${img.uid}:`, error);
+                } finally {
+                    updateProgress();
+                }
+            });
+
 
             setAnalyzing(false);
             toast.success('Image analysis complete.');
@@ -99,7 +126,6 @@ export default function Step3ImageReview() {
         analyze();
     }, [setState, state.config, state.images]);
 
-    // Toggle image status
     const toggleImageStatus = (uid: string) => {
         setState(prev => ({
             ...prev,
@@ -112,7 +138,6 @@ export default function Step3ImageReview() {
         }));
     };
 
-    // Toggle all images in a group
     const toggleGroupStatus = (images: ImageAsset[]) => {
         const allActive = images.every(img => img.status === 'active');
         const newStatus = allActive ? 'ignored' : 'active';
@@ -130,7 +155,6 @@ export default function Step3ImageReview() {
         toast.info(`${newStatus === 'active' ? 'Enabled' : 'Disabled'} ${images.length} images`);
     };
 
-    // Group images by content type, then by usage key
     const groupedByContentType = useMemo(() => {
         const contentTypeGroups = new Map<string, Map<string, ImageAsset[]>>();
 
@@ -154,7 +178,6 @@ export default function Step3ImageReview() {
             subGroups.get(usageKey)!.push(image);
         });
 
-        // Sort content types: "No Usages" last, others alphabetically
         const sortedEntries = Array.from(contentTypeGroups.entries()).sort((a, b) => {
             if (a[0] === 'No Usages') return 1;
             if (b[0] === 'No Usages') return -1;
