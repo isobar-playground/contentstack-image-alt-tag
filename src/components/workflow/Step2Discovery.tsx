@@ -16,6 +16,11 @@ export default function Step2Discovery() {
     const [languages, setLanguages] = useState<Language[]>([]);
     const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
 
+    const [discoveredImages, setDiscoveredImages] = useState<ImageAsset[]>([]);
+    const [selectedImageUids, setSelectedImageUids] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
+    const [hasDiscoveredImages, setHasDiscoveredImages] = useState(false);
+
     const [loadingLanguages, setLoadingLanguages] = useState(false);
     const [loadingContentTypes, setLoadingContentTypes] = useState(false);
     const [loadingImages, setLoadingImages] = useState(false);
@@ -113,14 +118,28 @@ export default function Step2Discovery() {
         });
     };
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (state.selectedContentTypes.length > 0) {
+                handleDiscoverImages();
+            } else {
+                setDiscoveredImages([]);
+                setSelectedImageUids(new Set());
+                setHasDiscoveredImages(false);
+            }
+        }, 500);
 
-    const handleFetchImages = async () => {
+        return () => clearTimeout(timer);
+    }, [state.selectedContentTypes, state.selectedLanguages]); // Re-run if languages or types change
+
+    const handleDiscoverImages = async () => {
         if (state.selectedContentTypes.length === 0) {
-            toast.error('Please select at least one content type.');
             return;
         }
 
         setLoadingImages(true);
+        setHasDiscoveredImages(false);
+
         try {
             let allImages: ImageAsset[] = [];
             const typeUids = state.selectedContentTypes.map(t => t.uid);
@@ -136,13 +155,12 @@ export default function Step2Discovery() {
                 allImages = [...allImages, ...imagesWithLocale];
             }
 
-            setState(prev => ({ ...prev, images: allImages }));
+            setDiscoveredImages(allImages);
+            setSelectedImageUids(new Set(allImages.map(img => img.uid)));
+            setHasDiscoveredImages(true);
 
             if (allImages.length === 0) {
                 toast.info('No images found without description.');
-            } else {
-                toast.success(`Found ${allImages.length} images.`);
-                setStep(3);
             }
         } catch (error) {
             toast.error('Failed to fetch images.');
@@ -152,12 +170,55 @@ export default function Step2Discovery() {
         }
     };
 
+    const filteredImages = discoveredImages.filter(img =>
+        img.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        img.uid.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const uniqueDisplayImages = Array.from(
+        new Map(filteredImages.map(img => [img.uid, img])).values()
+    );
+
+    const toggleImageSelection = (uid: string) => {
+        const newSelection = new Set(selectedImageUids);
+        if (newSelection.has(uid)) {
+            newSelection.delete(uid);
+        } else {
+            newSelection.add(uid);
+        }
+        setSelectedImageUids(newSelection);
+    };
+
+    const handleSelectAll = () => {
+        const newSelection = new Set(selectedImageUids);
+        discoveredImages.forEach(img => newSelection.add(img.uid));
+        setSelectedImageUids(newSelection);
+    };
+
+    const handleDeselectAll = () => {
+        const newSelection = new Set(selectedImageUids);
+        discoveredImages.forEach(img => newSelection.delete(img.uid));
+        setSelectedImageUids(newSelection);
+    };
+
+    const handleProceed = () => {
+        const finalImages = discoveredImages.filter(img => selectedImageUids.has(img.uid));
+
+        if (finalImages.length === 0) {
+            toast.error('Please select at least one image to proceed.');
+            return;
+        }
+
+        setState(prev => ({ ...prev, images: finalImages }));
+        setStep(3);
+    };
+
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Discovery</CardTitle>
-                    <CardDescription>Select languages to automatically discover content types.</CardDescription>
+                    <CardDescription>Select languages and content types to discover images.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Languages Section */}
@@ -168,7 +229,7 @@ export default function Step2Discovery() {
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading languages...
                             </div>
                         ) : (
-                            <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                            <ScrollArea className="h-[150px] w-full rounded-md border p-4">
                                 <div className="space-y-1">
                                     {languages.map((lang, index) => (
                                         <div
@@ -215,7 +276,7 @@ export default function Step2Discovery() {
                         )}
 
                         {contentTypes.length > 0 && (
-                            <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                            <ScrollArea className="h-[150px] w-full rounded-md border p-4">
                                 <div className="space-y-1">
                                     {contentTypes.map((type, index) => (
                                         <div
@@ -237,15 +298,82 @@ export default function Step2Discovery() {
                             </ScrollArea>
                         )}
                     </div>
+
+                    {/* Content Section (New) */}
+                    {(hasDiscoveredImages || loadingImages) && state.selectedContentTypes.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-medium leading-none">Content</h3>
+                                {loadingImages ? (
+                                    <span className="flex items-center text-xs text-muted-foreground">
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading images...
+                                    </span>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                        {selectedImageUids.size} selected / {uniqueDisplayImages.length} total
+                                    </span>
+                                )}
+                            </div>
+
+                            {!loadingImages && hasDiscoveredImages && (
+                                <>
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Search by filename or ID..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        <Button variant="outline" size="sm" onClick={handleSelectAll}>All</Button>
+                                        <Button variant="outline" size="sm" onClick={handleDeselectAll}>None</Button>
+                                    </div>
+
+                                    <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+                                        <div className="space-y-1">
+                                            {uniqueDisplayImages.length === 0 ? (
+                                                <div className="text-sm text-muted-foreground text-center py-4">
+                                                    No images match your search.
+                                                </div>
+                                            ) : (
+                                                uniqueDisplayImages.map((img, index) => (
+                                                    <div
+                                                        key={img.uid}
+                                                        className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${selectedImageUids.has(img.uid)
+                                                            ? 'bg-primary/10 text-primary font-medium'
+                                                            : 'hover:bg-muted'
+                                                            }`}
+                                                        onClick={() => toggleImageSelection(img.uid)}
+                                                    >
+                                                        <div className="flex-shrink-0">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img src={img.url} alt={img.filename} className="h-10 w-10 object-cover rounded" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm truncate">{img.filename}</p>
+                                                            <p className="text-xs text-muted-foreground truncate">{img.title}</p>
+                                                        </div>
+                                                        {selectedImageUids.has(img.uid) && (
+                                                            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </ScrollArea>
+                                </>
+                            )}
+                        </div>
+                    )}
+
                 </CardContent>
                 <CardFooter>
                     <Button
-                        onClick={handleFetchImages}
-                        disabled={loadingImages || state.selectedContentTypes.length === 0}
+                        onClick={handleProceed}
+                        disabled={selectedImageUids.size === 0 || loadingImages}
                         className="w-full"
                     >
-                        {loadingImages ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Fetch Images & Proceed
+                        Proceed with {selectedImageUids.size} Images
                     </Button>
                 </CardFooter>
             </Card>
