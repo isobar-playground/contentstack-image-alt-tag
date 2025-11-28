@@ -19,6 +19,7 @@ import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import '@mdxeditor/editor/style.css';
 import '../../mdxeditor-custom.css';
+import Image from 'next/image';
 
 const MDXEditor = dynamic(
     () => import('@mdxeditor/editor').then((mod) => {
@@ -321,8 +322,8 @@ export default function Step4BatchProcessing() {
                                         <Image
                                           src={image.url}
                                           alt={image.filename || "Image"}
-                                          width={150} // Provide appropriate width
-                                          height={150} // Provide appropriate height
+                                          width={150}
+                                          height={150}
                                           className="object-contain w-full h-full p-1"
                                           title={image.filename}
                                         />

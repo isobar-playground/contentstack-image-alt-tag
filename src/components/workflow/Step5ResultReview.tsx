@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import Image from 'next/image';
 
 export default function Step5ResultReview() {
     const { state, setState, setStep } = useAppContext();
@@ -107,8 +108,8 @@ export default function Step5ResultReview() {
                                                     <Image
                                                       src={image.url}
                                                       alt={image.filename || "Image"}
-                                                      width={150} // Provide appropriate width
-                                                      height={150} // Provide appropriate height
+                                                      width={150}
+                                                      height={150}
                                                       className="object-contain w-full h-full"
                                                       loading="lazy"
                                                     />

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { ImageAsset, ImageUsage } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 async function pLimit<T, R>(concurrency: number, items: T[], iteratorFn: (item: T) => Promise<R>): Promise<R[]> {
     const results: R[] = [];
@@ -336,17 +337,15 @@ export default function Step3ImageReview() {
                                                                                     )}
                                                                                 >
                                                                                     <div className="aspect-square relative bg-muted">
-                                                                                        import Image from 'next/image';
-                                                                                        
-                                                                                                                                                                                
-                                                                                                                                                                                                                                                                            <Image
-                                                                                                                                                                                      src={image.url}
-                                                                                                                                                                                      alt={image.filename || "Image"}
-                                                                                                                                                                                      width={150}
-                                                                                                                                                                                      height={150}
-                                                                                                                                                                                      className="object-contain w-full h-full p-2"
-                                                                                                                                                                                      loading="lazy"
-                                                                                                                                                                                    />                                                                                        <div className="absolute top-2 right-2">
+                                                                                        <Image
+                                                                                            src={image.url}
+                                                                                            alt={image.filename || "Image"}
+                                                                                            width={150}
+                                                                                            height={150}
+                                                                                            className="object-contain w-full h-full p-2"
+                                                                                            loading="lazy"
+                                                                                        />
+                                                                                        <div className="absolute top-2 right-2">
                                                                                             {isActive ? (
                                                                                                 <CheckCircle2 className="h-5 w-5 text-blue-500 bg-card rounded-full" />
                                                                                             ) : (
