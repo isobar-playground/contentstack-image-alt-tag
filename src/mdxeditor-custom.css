@@ -1,0 +1,41 @@
+/* MDXEditor custom styles for proper list and paragraph formatting */
+.mdxeditor-root-contenteditable ol {
+  list-style: decimal !important;
+  padding-left: 2rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.mdxeditor-root-contenteditable ul {
+  list-style: disc !important;
+  padding-left: 2rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.mdxeditor-root-contenteditable li {
+  display: list-item !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.mdxeditor-root-contenteditable p {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.mdxeditor-root-contenteditable h1,
+.mdxeditor-root-contenteditable h2,
+.mdxeditor-root-contenteditable h3,
+.mdxeditor-root-contenteditable h4 {
+  margin-top: 1.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.mdxeditor-root-contenteditable > *:first-child {
+  margin-top: 0 !important;
+}
+
+.mdxeditor-root-contenteditable > *:last-child {
+  margin-bottom: 0 !important;
+}
