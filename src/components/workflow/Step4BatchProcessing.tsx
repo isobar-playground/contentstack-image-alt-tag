@@ -119,7 +119,6 @@ export default function Step4BatchProcessing() {
                         return {
                             ...img,
                             generatedAltText: altText,
-                            status: altText ? img.status : 'ignored',
                         };
                     }
                     return img;
@@ -308,9 +307,6 @@ export default function Step4BatchProcessing() {
             <Card>
                 <CardHeader>
                     <CardTitle>Batch Processing</CardTitle>
-                    <CardDescription>
-                        Review the images and edit the prompt before sending to OpenAI Batch API.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {!state.batchInfo ? (

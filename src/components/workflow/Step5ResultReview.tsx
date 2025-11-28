@@ -78,6 +78,88 @@ export default function Step5ResultReview() {
         });
     };
 
+    const handleExportHtml = () => {
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15); // YYYYMMDDTHHMMSS
+        const filename = `alt_tag_review_${timestamp}.html`;
+
+        const generateUserPrompt = (image) => {
+            let userMessage = 'Generate an ALT tag for this image.';
+            if (image.localeName) {
+                userMessage += `
+
+Generate the ALT tag in the language: ${image.localeName}`;
+            }
+            if (image.usages && image.usages.length > 0) {
+                const context = image.usages.map(u => `Used in content type ${u.contentTypeTitle} named ${u.key.split(' - ')[1] || 'Unknown'}`).join('. ');
+                userMessage += `
+
+Context: ${context}`;
+            }
+            if (state.config.brandName) { // Using state.config.brandName as it was used in handleStartBatch
+                userMessage += `
+
+Brand: ${state.config.brandName}`;
+            }
+            return userMessage;
+        };
+
+        let htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alt Tag Review - ${timestamp}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: sans-serif; margin: 0; padding: 2em; background-color: #f8f9fa; color: #212529; }
+        h1 { color: #343a40; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); gap: 20px; }
+        .card { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .card img { max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 15px; }
+        .card p { font-size: 0.9em; margin: 5px 0; }
+        .card pre { flex-grow: 1; background-color: #e9ecef; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; margin-bottom: 10px; }
+        .label { font-weight: bold; color: #007bff; }
+        .alt-text { background-color: #d4edda; color: #155724; padding: 10px; border-radius: 4px; border-left: 5px solid #28a745;}
+        .empty-alt-text { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; border-left: 5px solid #ffc107;}
+        .error-text { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; border-left: 5px solid #dc3545;}
+        .no-data { font-size: 1.2em; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Batch Request & Result Review (${state.images.length} items)</h1>
+        <div class="gallery">
+        ${state.images.map(image => `
+            <div class="card">
+                <img src="${image.url}" alt="${image.generatedAltText || image.filename || 'Image preview'}" loading="lazy">
+                <p class="label">User Prompt:</p>
+                <pre>${generateUserPrompt(image)}</pre>
+                <p class="label">Generated ALT Tag:</p>
+                <div class="${image.generatedAltText === '' ? 'empty-alt-text' : 'alt-text'}">
+                    ${image.generatedAltText === '' ? '"" (Empty Alt Tag - prompt instructed no alt)' : image.generatedAltText}
+                </div>
+            </div>
+        `).join('')}
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('HTML report exported successfully!');
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -94,7 +176,7 @@ export default function Step5ResultReview() {
                         </div>
                     </div>
 
-                    <ScrollArea className="h-[600px] w-full rounded-md border p-4 bg-gray-50">
+                    <ScrollArea className="h-[600px] w-full rounded-md border p-4 bg-card">
                         {activeImages.length === 0 ? (
                             <div className="flex items-center justify-center h-full text-gray-400">
                                 No images to review.
@@ -105,14 +187,14 @@ export default function Step5ResultReview() {
                                     <div key={image.uid} className="bg-card border rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-4">
                                         <div className="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
                                             <div className="aspect-square relative bg-muted rounded-md overflow-hidden border">
-                                                    <Image
-                                                      src={image.url}
-                                                      alt={image.filename || "Image"}
-                                                      width={150}
-                                                      height={150}
-                                                      className="object-contain w-full h-full"
-                                                      loading="lazy"
-                                                    />
+                                                <Image
+                                                    src={image.url}
+                                                    alt={image.filename || "Image"}
+                                                    width={150}
+                                                    height={150}
+                                                    className="object-contain w-full h-full"
+                                                    loading="lazy"
+                                                />
                                             </div>
                                             <div className="mt-2 text-xs text-gray-500 truncate" title={image.filename}>
                                                 {image.filename}
@@ -135,7 +217,7 @@ export default function Step5ResultReview() {
                                                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                                     onClick={() => handleRemoveImage(image.uid)}
                                                 >
-                                                    <Trash2 className="h-4 w-4 mr-1" /> Skip
+                                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
                                                 </Button>
                                             </div>
                                             <Textarea
@@ -160,6 +242,13 @@ export default function Step5ResultReview() {
                         className="flex-1"
                     >
                         Regenerate Alt Tags
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={handleExportHtml}
+                        className="flex-1"
+                    >
+                        Export HTML Report
                     </Button>
                     <Button
                         onClick={handleProceed}
