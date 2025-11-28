@@ -6,15 +6,15 @@ import { retrieveBatch, downloadBatchResults, uploadBatchFile, createBatch } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle, FileText, RefreshCw } from 'lucide-react';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { BatchInfo } from '@/lib/types';
-import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
+
 import { OPENAI_MODELS, calculateImageTokens, estimateCost } from '@/lib/openai';
 import dynamic from 'next/dynamic';
 import '@mdxeditor/editor/style.css';

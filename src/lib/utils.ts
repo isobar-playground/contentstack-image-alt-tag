@@ -27,7 +27,7 @@ export function parseContentstackError(error: unknown): string {
                                 return JSON.stringify(err);
                             }).join(', ');
                         }
-                    } catch (_: unknown) {
+                    } catch {
                         // Fallback to original message if JSON parsing fails
                         message = apiError.message;
                     }

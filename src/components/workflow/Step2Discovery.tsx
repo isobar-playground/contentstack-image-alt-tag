@@ -118,21 +118,7 @@ export default function Step2Discovery() {
         });
     };
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (state.selectedContentTypes.length > 0) {
-                handleDiscoverImages();
-            } else {
-                setDiscoveredImages([]);
-                setSelectedImageUids(new Set());
-                setHasDiscoveredImages(false);
-            }
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [state.selectedContentTypes, state.selectedLanguages]); // Re-run if languages or types change
-
-    const handleDiscoverImages = async () => {
+    const handleDiscoverImages = useCallback(async () => {
         if (state.selectedContentTypes.length === 0) {
             return;
         }
@@ -168,7 +154,17 @@ export default function Step2Discovery() {
         } finally {
             setLoadingImages(false);
         }
-    };
+    }, [state.selectedContentTypes, state.selectedLanguages, state.config, setLoadingImages, setHasDiscoveredImages, setDiscoveredImages, setSelectedImageUids]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (state.selectedContentTypes.length > 0) {
+                handleDiscoverImages();
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [state.selectedContentTypes, state.selectedLanguages, handleDiscoverImages]);
 
     const filteredImages = discoveredImages.filter(img =>
         img.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -336,7 +332,7 @@ export default function Step2Discovery() {
                                                     No images match your search.
                                                 </div>
                                             ) : (
-                                                uniqueDisplayImages.map((img, index) => (
+                                                uniqueDisplayImages.map((img) => (
                                                     <div
                                                         key={img.uid}
                                                         className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${selectedImageUids.has(img.uid)

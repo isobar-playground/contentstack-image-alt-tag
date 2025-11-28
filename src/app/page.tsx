@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Loader2, ChevronDown, RotateCcw } from 'lucide-react';
 
 import { getEnvironments } from '@/app/actions';
-import { ContentstackAPIError } from '@/lib/types';
+
 import { parseContentstackError } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 

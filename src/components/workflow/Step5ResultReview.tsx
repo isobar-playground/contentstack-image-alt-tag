@@ -104,7 +104,7 @@ Brand: ${state.config.brandName}`;
             return userMessage;
         };
 
-        let htmlContent = `
+        const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
