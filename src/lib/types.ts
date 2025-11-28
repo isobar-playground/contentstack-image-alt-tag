@@ -38,6 +38,8 @@ export interface ImageAsset {
     locale: string;
     localeName: string;
     description?: string;
+    width?: number;
+    height?: number;
     usages?: ImageUsage[];
     status?: 'active' | 'ignored';
     generatedAltText?: string;

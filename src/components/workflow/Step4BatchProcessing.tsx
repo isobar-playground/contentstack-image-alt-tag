@@ -6,7 +6,6 @@ import { retrieveBatch, downloadBatchResults, uploadBatchFile, createBatch } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -16,6 +15,7 @@ import { Loader2, AlertTriangle, FileText, RefreshCw } from 'lucide-react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { BatchInfo } from '@/lib/types';
 import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
+import { OPENAI_MODELS, calculateImageTokens, estimateCost } from '@/lib/openai';
 import dynamic from 'next/dynamic';
 import '@mdxeditor/editor/style.css';
 import '../../mdxeditor-custom.css';
@@ -210,7 +210,7 @@ export default function Step4BatchProcessing() {
 
 
             const imageUrl = new URL(image.url);
-            imageUrl.searchParams.set('height', '720');
+            imageUrl.searchParams.set('height', '1080');
             imageUrl.searchParams.set('fit', 'scale-down');
             imageUrl.searchParams.set('quality', '85');
 
@@ -238,6 +238,10 @@ export default function Step4BatchProcessing() {
     };
 
     const handleStartBatch = async () => {
+        if (!openaiApiKey) {
+            toast.error('OpenAI API Key is required to start batch processing.');
+            return;
+        }
 
         const updatedConfig = {
             ...state.config,
@@ -336,7 +340,7 @@ export default function Step4BatchProcessing() {
                             {/* OpenAI Configuration */}
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-lg">OpenAI Configuration</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="openaiApiKey">API Key</Label>
                                         <Input
@@ -349,21 +353,51 @@ export default function Step4BatchProcessing() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="openaiModel">Model</Label>
-                                        <Select value={openaiModel} onValueChange={setOpenaiModel}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select model" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="gpt-4o">GPT-4o ($1.25/$5.00)</SelectItem>
-                                                <SelectItem value="gpt-4o-mini">GPT-4o-mini ($0.075/$0.30)</SelectItem>
-                                                <SelectItem value="gpt-4o-2024-05-13">GPT-4o-2024-05-13 ($2.50/$7.50)</SelectItem>
-                                                <SelectItem value="gpt-4.1">GPT-4.1 ($1.00/$4.00)</SelectItem>
-                                                <SelectItem value="gpt-4.1-mini">GPT-4.1-mini ($0.20/$0.80)</SelectItem>
-                                                <SelectItem value="gpt-4.1-nano">GPT-4.1-nano ($0.05/$0.20)</SelectItem>
-                                                <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <Label>Model & Estimated Cost</Label>
+                                        <div className="border rounded-md divide-y">
+                                            {OPENAI_MODELS.map((model) => {
+                                                // Calculate estimated cost
+                                                let totalInputTokens = 0;
+                                                const totalOutputTokens = activeImages.length * 150; // Estimate 150 tokens output per image
+
+                                                activeImages.forEach(img => {
+                                                    // Image tokens
+                                                    const width = img.width || 800; // Fallback width
+                                                    const height = img.height || 800; // Fallback height
+                                                    totalInputTokens += calculateImageTokens(width, height);
+
+                                                    // Text tokens (approx 4 chars per token)
+                                                    const textContext = (masterPrompt.length + (brandName?.length || 0) + 200); // +200 for system/user wrapper
+                                                    totalInputTokens += Math.ceil(textContext / 4);
+                                                });
+
+                                                const cost = estimateCost(model.id, totalInputTokens, totalOutputTokens);
+
+                                                return (
+                                                    <div key={model.id} className={`flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 ${openaiModel === model.id ? 'bg-muted' : ''}`} onClick={() => setOpenaiModel(model.id)}>
+                                                        <div className="flex items-center gap-3">
+                                                            <input
+                                                                type="radio"
+                                                                name="openaiModel"
+                                                                value={model.id}
+                                                                checked={openaiModel === model.id}
+                                                                onChange={() => setOpenaiModel(model.id)}
+                                                                className="h-4 w-4 text-primary"
+                                                            />
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium">{model.name}</span>
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    ${model.inputPrice.toFixed(2)} / ${model.outputPrice.toFixed(2)} per 1M tokens
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="font-semibold">
+                                                            {cost < 0.01 ? '>$0.01' : `~ $${cost.toFixed(2)}`}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -113,6 +113,8 @@ export async function getAssets(config: ContentstackConfig, languageCode: string
         locale: languageCode,
         localeName: '', // We might need to pass locale name or fetch it
         description: asset.description,
+        width: asset.dimension?.width,
+        height: asset.dimension?.height,
     }));
 }
 

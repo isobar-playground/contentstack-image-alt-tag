@@ -62,3 +62,52 @@ export async function cancelBatch(config: OpenAIConfig, batchId: string) {
     const openai = createOpenAIClient(config);
     return await openai.batches.cancel(batchId);
 }
+
+export const OPENAI_MODELS = [
+    { id: 'gpt-4.1', name: 'GPT-4.1', inputPrice: 1.00, outputPrice: 4.00 },
+    { id: 'gpt-4.1-mini', name: 'GPT-4.1-mini', inputPrice: 0.20, outputPrice: 0.80 },
+    { id: 'gpt-4.1-nano', name: 'GPT-4.1-nano', inputPrice: 0.05, outputPrice: 0.20 },
+    { id: 'gpt-4o', name: 'GPT-4o', inputPrice: 1.25, outputPrice: 5.00 },
+    { id: 'gpt-4o-mini', name: 'gpt-4o-mini', inputPrice: 0.075, outputPrice: 0.30 },
+];
+
+export function calculateImageTokens(width: number, height: number, detail: 'low' | 'high' = 'high'): number {
+    if (detail === 'low') return 85;
+
+    // High detail calculation
+    // 1. Scale to fit within 2048x2048
+    let scaledWidth = width;
+    let scaledHeight = height;
+
+    if (scaledWidth > 2048 || scaledHeight > 2048) {
+        const ratio = Math.min(2048 / scaledWidth, 2048 / scaledHeight);
+        scaledWidth = Math.floor(scaledWidth * ratio);
+        scaledHeight = Math.floor(scaledHeight * ratio);
+    }
+
+    // 2. Scale such that shortest side is 768px
+    const shortestSide = Math.min(scaledWidth, scaledHeight);
+    if (shortestSide > 768) {
+        const ratio = 768 / shortestSide;
+        scaledWidth = Math.floor(scaledWidth * ratio);
+        scaledHeight = Math.floor(scaledHeight * ratio);
+    }
+
+    // 3. Count 512px tiles
+    const tilesX = Math.ceil(scaledWidth / 512);
+    const tilesY = Math.ceil(scaledHeight / 512);
+    const totalTiles = tilesX * tilesY;
+
+    // 4. Calculate tokens: 170 per tile + 85 base
+    return (totalTiles * 170) + 85;
+}
+
+export function estimateCost(modelId: string, inputTokens: number, outputTokens: number): number {
+    const model = OPENAI_MODELS.find(m => m.id === modelId);
+    if (!model) return 0;
+
+    const inputCost = (inputTokens / 1_000_000) * model.inputPrice;
+    const outputCost = (outputTokens / 1_000_000) * model.outputPrice;
+
+    return inputCost + outputCost;
+}
