@@ -11,6 +11,8 @@ import { Trash2 } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
 
+import { ImageAsset } from '@/lib/types';
+
 export default function Step5ResultReview() {
     const { state, setState, setStep } = useAppContext();
     const confirmDialog = useConfirmDialog();
@@ -83,7 +85,7 @@ export default function Step5ResultReview() {
         const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15); // YYYYMMDDTHHMMSS
         const filename = `alt_tag_review_${timestamp}.html`;
 
-        const generateUserPrompt = (image) => {
+        const generateUserPrompt = (image: ImageAsset) => {
             let userMessage = 'Generate an ALT tag for this image.';
             if (image.localeName) {
                 userMessage += `
