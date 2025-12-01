@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Loader2 } from 'lucide-react';
 import { getEnvironments, validateOpenAIKey } from '@/app/actions';
 import { parseContentstackError } from '@/lib/utils';
@@ -83,6 +83,7 @@ export default function Step1Configuration() {
             const message = parseContentstackError(error);
             setEnvError(message);
             setEnvironments([]);
+            toast.error(`Contentstack API Error: ${message}`);
         } finally {
             setLoadingEnvs(false);
             setIsTyping(false);
@@ -182,8 +183,6 @@ export default function Step1Configuration() {
                     <CardTitle className="text-2xl font-bold text-center">Contentstack Image Alt Tag Generator</CardTitle>
                     <CardDescription className="text-center">
                         Configure your API keys and settings to start generating Alt tags using AI.
-                        <br />
-                        <span className="text-xs text-gray-500">Data is stored locally in your browser session.</span>
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>

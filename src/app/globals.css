@@ -116,7 +116,53 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Sonner toast custom styling */
+.sonner-error-toast {
+  background: #b91c1c !important;
+  color: white !important;
+  border-color: #991b1b !important;
+  border-width: 2px !important;
+}
+
+.sonner-error-toast * {
+  color: white !important;
+}
+
+.sonner-success-toast {
+  background: #16a34a !important;
+  color: white !important;
+  border-color: #15803d !important;
+  border-width: 2px !important;
+}
+
+.sonner-success-toast * {
+  color: white !important;
+}
+
+.sonner-warning-toast {
+  background: #ea580c !important;
+  color: white !important;
+  border-color: #c2410c !important;
+  border-width: 2px !important;
+}
+
+.sonner-warning-toast * {
+  color: white !important;
+}
+
+.sonner-info-toast {
+  background: #2563eb !important;
+  color: white !important;
+  border-color: #1d4ed8 !important;
+  border-width: 2px !important;
+}
+
+.sonner-info-toast * {
+  color: white !important;
 }
