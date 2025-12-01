@@ -53,6 +53,16 @@ export async function cancelBatch(config: OpenAIConfig, batchId: string) {
     return await openai.batches.cancel(batchId);
 }
 
+export async function validateOpenAIKey(config: OpenAIConfig) {
+    const openai = createOpenAIClient(config);
+    try {
+        await openai.models.list();
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 export const OPENAI_MODELS = [
     { id: 'gpt-4.1', name: 'GPT-4.1', inputPrice: 1.00, outputPrice: 4.00 },
     { id: 'gpt-4.1-mini', name: 'GPT-4.1-mini', inputPrice: 0.20, outputPrice: 0.80 },

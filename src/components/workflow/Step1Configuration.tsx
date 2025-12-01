@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { getEnvironments } from '@/app/actions';
+import { getEnvironments, validateOpenAIKey } from '@/app/actions';
 import { parseContentstackError } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -89,11 +89,22 @@ export default function Step1Configuration() {
         return () => clearTimeout(timer);
     }, [formData.contentstackApiKey, formData.contentstackManagementToken, fetchEnvironments]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!formData.contentstackApiKey || !formData.contentstackManagementToken) {
-            toast.error('Please fill in all required API keys.');
+            toast.error('Please fill in all required Contentstack API keys.');
+            return;
+        }
+
+        if (!formData.openaiApiKey) {
+            toast.error('Please enter your OpenAI API Key.');
+            return;
+        }
+
+        const isValid = await validateOpenAIKey(formData.openaiApiKey);
+        if (!isValid) {
+            toast.error('Invalid OpenAI API Key. Please check your key and try again.');
             return;
         }
 
@@ -174,6 +185,25 @@ export default function Step1Configuration() {
                                     {!envError && !loadingEnvs && !isTyping && environments.length === 0 && (
                                         <p className="text-sm text-muted-foreground">Enter keys to load environments.</p>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold border-b pb-2">OpenAI Configuration</h3>
+                            <div className="grid grid-cols-1 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="openaiApiKey">OpenAI API Key</Label>
+                                    <Input
+                                        id="openaiApiKey"
+                                        name="openaiApiKey"
+                                        type="password"
+                                        placeholder="sk-..."
+                                        value={formData.openaiApiKey}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                    <p className="text-xs text-muted-foreground">Required for generating Alt tags.</p>
                                 </div>
                             </div>
                         </div>

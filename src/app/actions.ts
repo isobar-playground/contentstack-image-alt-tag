@@ -154,3 +154,8 @@ export async function downloadBatchResults(config: AppConfig, fileId: string) {
     if (!config.openaiApiKey) throw new Error("OpenAI API Key is required");
     return openai.downloadBatchResults({ apiKey: config.openaiApiKey }, fileId);
 }
+
+export async function validateOpenAIKey(apiKey: string) {
+    if (!apiKey) return false;
+    return openai.validateOpenAIKey({ apiKey });
+}

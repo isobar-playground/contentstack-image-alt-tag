@@ -81,7 +81,6 @@ export default function Step4BatchProcessing() {
     const [downloading, setDownloading] = useState(false);
     const [masterPrompt, setMasterPrompt] = useState(state.config.masterPrompt);
     const [brandName, setBrandName] = useState(state.config.brandName);
-    const [openaiApiKey, setOpenaiApiKey] = useState(state.config.openaiApiKey);
     const [openaiModel, setOpenaiModel] = useState(state.config.openaiModel);
 
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -237,7 +236,7 @@ export default function Step4BatchProcessing() {
     };
 
     const handleStartBatch = async () => {
-        if (!openaiApiKey) {
+        if (!state.config.openaiApiKey) {
             toast.error('OpenAI API Key is required to start batch processing.');
             return;
         }
@@ -246,7 +245,6 @@ export default function Step4BatchProcessing() {
             ...state.config,
             masterPrompt,
             brandName,
-            openaiApiKey,
             openaiModel
         };
 
@@ -337,17 +335,6 @@ export default function Step4BatchProcessing() {
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-lg">OpenAI Configuration</h3>
                                 <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="openaiApiKey">API Key</Label>
-                                        <Input
-                                            id="openaiApiKey"
-                                            name="openaiApiKey"
-                                            type="password"
-                                            placeholder="sk-..."
-                                            value={openaiApiKey}
-                                            onChange={(e) => setOpenaiApiKey(e.target.value)}
-                                        />
-                                    </div>
                                     <div className="space-y-2">
                                         <Label>Model & Estimated Cost</Label>
                                         <div className="border rounded-md divide-y">
