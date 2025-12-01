@@ -58,7 +58,7 @@ export async function validateOpenAIKey(config: OpenAIConfig) {
     try {
         await openai.models.list();
         return true;
-    } catch (error) {
+    } catch {
         return false;
     }
 }

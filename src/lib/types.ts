@@ -78,8 +78,11 @@ export interface AppState {
 }
 
 
+export interface ErrorObject {
+    message?: string;
+}
 
 export interface ContentstackAPIError extends Error {
     errorMessage?: string;
-    errors?: Array<{ message: string }>;
+    errors?: ErrorObject[];
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useAppContext } from '@/context/AppContext';
 import { getLanguages, getContentTypes, getAssets } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -363,7 +364,7 @@ export default function Step2Discovery() {
                                                     onClick={() => toggleImageSelection(img.uid)}
                                                 >
                                                     <div className="shrink-0">
-                                                        <img src={img.url} alt={img.filename} className="h-10 w-10 object-cover rounded" />
+                                                        <Image src={img.url} alt={img.filename} width={40} height={40} className="h-10 w-10 object-cover rounded" unoptimized />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm truncate">{img.filename}</p>
