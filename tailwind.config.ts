@@ -1,12 +1,11 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  // Configure files to scan for Tailwind classes
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // This covers all files in src/
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -17,8 +16,5 @@ const config: Config = {
       },
     },
   },
-  plugins: [
-    // Add any Tailwind plugins here, e.g., require('@tailwindcss/typography')
-  ],
 };
 export default config;

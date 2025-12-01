@@ -1,8 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { AppState, AppConfig, Language, ContentType, ImageAsset, BatchInfo } from '@/lib/types';
+import type { AppState, AppConfig } from '@/lib/types';
 import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
 
 interface AppContextType {
@@ -43,14 +42,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         try {
-            const saved = localStorage.getItem(STORAGE_KEY);
+            const saved = sessionStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
-    
+
                 setState((prev) => ({ ...prev, ...parsed }));
             }
         } catch (e) {
-            console.error('Failed to load state from local storage', e);
+            console.error('Failed to load state from session storage', e);
         } finally {
             setIsLoaded(true);
         }
@@ -59,7 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (isLoaded) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
     }, [state, isLoaded]);
 
@@ -101,7 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const fullReset = () => {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
         setState(defaultState);
     };
 

@@ -82,7 +82,7 @@ export default function Step5ResultReview() {
 
     const handleExportHtml = () => {
         const now = new Date();
-        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15); // YYYYMMDDTHHMMSS
+        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15);
         const filename = `alt_tag_review_${timestamp}.html`;
 
         const generateUserPrompt = (image: ImageAsset) => {
@@ -98,7 +98,7 @@ Generate the ALT tag in the language: ${image.localeName}`;
 
 Context: ${context}`;
             }
-            if (state.config.brandName) { // Using state.config.brandName as it was used in handleStartBatch
+            if (state.config.brandName) {
                 userMessage += `
 
 Brand: ${state.config.brandName}`;

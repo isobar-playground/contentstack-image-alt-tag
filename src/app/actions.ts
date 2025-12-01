@@ -4,7 +4,14 @@ import * as contentstack from '@/lib/contentstack';
 import * as openai from '@/lib/openai';
 import { AppConfig } from '@/lib/types';
 
+function validateConfig(config: AppConfig) {
+    if (!config.contentstackApiKey || !config.contentstackManagementToken) {
+        throw new Error("Missing Contentstack configuration");
+    }
+}
+
 export async function getLanguages(config: AppConfig) {
+    validateConfig(config);
     return contentstack.getLanguages({
         apiKey: config.contentstackApiKey,
         managementToken: config.contentstackManagementToken,
@@ -12,6 +19,7 @@ export async function getLanguages(config: AppConfig) {
 }
 
 export async function getEnvironments(config: AppConfig) {
+    validateConfig(config);
     return contentstack.getEnvironments({
         apiKey: config.contentstackApiKey,
         managementToken: config.contentstackManagementToken,
@@ -19,6 +27,8 @@ export async function getEnvironments(config: AppConfig) {
 }
 
 export async function getContentTypes(config: AppConfig, languageCode: string) {
+    validateConfig(config);
+    if (!languageCode) throw new Error("Language code is required");
     return contentstack.getContentTypes({
         apiKey: config.contentstackApiKey,
         managementToken: config.contentstackManagementToken,
@@ -26,6 +36,8 @@ export async function getContentTypes(config: AppConfig, languageCode: string) {
 }
 
 export async function getAssets(config: AppConfig, languageCode: string, contentTypes: string[]) {
+    validateConfig(config);
+    if (!languageCode) throw new Error("Language code is required");
     return contentstack.getAssets({
         apiKey: config.contentstackApiKey,
         managementToken: config.contentstackManagementToken,
@@ -33,6 +45,8 @@ export async function getAssets(config: AppConfig, languageCode: string, content
 }
 
 export async function updateAssetDescription(config: AppConfig, assetUid: string, locale: string, description: string) {
+    validateConfig(config);
+    if (!assetUid || !locale) throw new Error("Asset UID and locale are required");
     return contentstack.updateAssetDescription({
         apiKey: config.contentstackApiKey,
         managementToken: config.contentstackManagementToken,
@@ -40,6 +54,9 @@ export async function updateAssetDescription(config: AppConfig, assetUid: string
 }
 
 export async function analyzeImageUsage(config: AppConfig, imageUid: string, locale: string) {
+    validateConfig(config);
+    if (!imageUid) throw new Error("Image UID is required");
+
     const csConfig = {
         apiKey: config.contentstackApiKey,
         managementToken: config.contentstackManagementToken,
@@ -97,7 +114,7 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
         if (!contentTypeUid || !entryUid) continue;
 
         const key = `${contentTypeUid}:${entryUid}:${refLocale}`;
-        if (!processedReferenceKeys.has(key)) continue; 
+        if (!processedReferenceKeys.has(key)) continue;
         processedReferenceKeys.delete(key);
 
         const contentTypeInfo = contentTypeInfoMap.get(contentTypeUid);
@@ -109,7 +126,7 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
                 contentTypeTitle: contentTypeInfo.title,
                 entryUid,
                 locale: refLocale,
-                fieldName: 'Reference', // Simplified, we don't traverse deep to find exact field name for now
+                fieldName: 'Reference',
                 key: `${contentTypeInfo.title} - ${entryTitle}`,
             });
         }
@@ -119,17 +136,21 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
 }
 
 export async function uploadBatchFile(config: AppConfig, fileContent: string, fileName: string) {
+    if (!config.openaiApiKey) throw new Error("OpenAI API Key is required");
     return openai.uploadBatchFile({ apiKey: config.openaiApiKey }, fileContent, fileName);
 }
 
 export async function createBatch(config: AppConfig, inputFileId: string) {
+    if (!config.openaiApiKey) throw new Error("OpenAI API Key is required");
     return openai.createBatch({ apiKey: config.openaiApiKey }, inputFileId);
 }
 
 export async function retrieveBatch(config: AppConfig, batchId: string) {
+    if (!config.openaiApiKey) throw new Error("OpenAI API Key is required");
     return openai.retrieveBatch({ apiKey: config.openaiApiKey }, batchId);
 }
 
 export async function downloadBatchResults(config: AppConfig, fileId: string) {
+    if (!config.openaiApiKey) throw new Error("OpenAI API Key is required");
     return openai.downloadBatchResults({ apiKey: config.openaiApiKey }, fileId);
 }

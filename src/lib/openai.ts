@@ -7,22 +7,13 @@ interface OpenAIConfig {
 export const createOpenAIClient = (config: OpenAIConfig) => {
     return new OpenAI({
         apiKey: config.apiKey,
-        dangerouslyAllowBrowser: true // We might need this if running client-side, but better to use server actions.
-        // However, for "stateless" app without backend DB, client-side is easier but exposes keys in network tab (HTTPS protects them but still).
-        // Given the requirement "keys in cookies", usually implies server-side usage.
-        // But "stateless" also implies no DB.
-        // If we use Server Actions, we can pass keys from cookies/client to the action.
-        // So we don't need dangerouslyAllowBrowser if we only use this in Server Actions.
+        dangerouslyAllowBrowser: true
     });
 };
 
-// We will use Server Actions for these to keep keys off the client-side JS (mostly) and avoid CORS if OpenAI blocks browser requests (it usually does).
-// So this file will be used by Server Actions.
 
 export async function uploadBatchFile(config: OpenAIConfig, fileContent: string, fileName: string) {
     const openai = createOpenAIClient(config);
-    // OpenAI expects a File object or ReadStream.
-    // In Node (Server Action), we can use a Blob or Buffer.
     const file = new File([fileContent], fileName, { type: 'application/jsonl' });
 
     const response = await openai.files.create({
@@ -48,7 +39,6 @@ export async function createBatch(config: OpenAIConfig, inputFileId: string) {
 export async function retrieveBatch(config: OpenAIConfig, batchId: string) {
     const client = createOpenAIClient(config);
     const batch = await client.batches.retrieve(batchId);
-    // Convert to plain object to avoid serialization issues with Next.js
     return JSON.parse(JSON.stringify(batch));
 }
 
@@ -74,8 +64,6 @@ export const OPENAI_MODELS = [
 export function calculateImageTokens(width: number, height: number, detail: 'low' | 'high' = 'high'): number {
     if (detail === 'low') return 85;
 
-    // High detail calculation
-    // 1. Scale to fit within 2048x2048
     let scaledWidth = width;
     let scaledHeight = height;
 
@@ -85,7 +73,6 @@ export function calculateImageTokens(width: number, height: number, detail: 'low
         scaledHeight = Math.floor(scaledHeight * ratio);
     }
 
-    // 2. Scale such that shortest side is 768px
     const shortestSide = Math.min(scaledWidth, scaledHeight);
     if (shortestSide > 768) {
         const ratio = 768 / shortestSide;
@@ -93,12 +80,9 @@ export function calculateImageTokens(width: number, height: number, detail: 'low
         scaledHeight = Math.floor(scaledHeight * ratio);
     }
 
-    // 3. Count 512px tiles
     const tilesX = Math.ceil(scaledWidth / 512);
     const tilesY = Math.ceil(scaledHeight / 512);
     const totalTiles = tilesX * tilesY;
-
-    // 4. Calculate tokens: 170 per tile + 85 base
     return (totalTiles * 170) + 85;
 }
 

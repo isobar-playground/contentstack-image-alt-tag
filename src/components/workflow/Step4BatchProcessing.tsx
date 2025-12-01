@@ -352,18 +352,15 @@ export default function Step4BatchProcessing() {
                                         <Label>Model & Estimated Cost</Label>
                                         <div className="border rounded-md divide-y">
                                             {OPENAI_MODELS.map((model) => {
-                                                // Calculate estimated cost
                                                 let totalInputTokens = 0;
-                                                const totalOutputTokens = activeImages.length * 150; // Estimate 150 tokens output per image
+                                                const totalOutputTokens = activeImages.length * 150;
 
                                                 activeImages.forEach(img => {
-                                                    // Image tokens
-                                                    const width = img.width || 800; // Fallback width
-                                                    const height = img.height || 800; // Fallback height
+                                                    const width = img.width || 800;
+                                                    const height = img.height || 800;
                                                     totalInputTokens += calculateImageTokens(width, height);
 
-                                                    // Text tokens (approx 4 chars per token)
-                                                    const textContext = (masterPrompt.length + (brandName?.length || 0) + 200); // +200 for system/user wrapper
+                                                    const textContext = (masterPrompt.length + (brandName?.length || 0) + 200);
                                                     totalInputTokens += Math.ceil(textContext / 4);
                                                 });
 

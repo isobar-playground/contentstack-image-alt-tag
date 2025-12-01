@@ -40,16 +40,9 @@ export async function getEnvironments(config: ContentstackConfig) {
 
 export async function getContentTypes(config: ContentstackConfig, languageCode: string) {
     const stack = getStack(config);
-    // We discover content types by checking assets in the given language
-    // This mimics the original script's logic: "discoverContentTypes"
-    // However, fetching ALL assets to find content types might be slow.
-    // The original script did: stack.asset().query().find({ locale: lang.code }) and checked content_type property.
-    // We will do the same but maybe limit to a reasonable number or use a different approach if possible.
-    // For now, let's stick to the original logic but maybe optimize later.
 
     const contentTypes = new Set<string>();
     try {
-        // Limit to 100 recent assets to discover types
         const response = await stack.asset().query({ limit: 100, locale: languageCode }).find();
         response.items.forEach((asset: Asset) => {
             if (asset.content_type) {
@@ -63,7 +56,7 @@ export async function getContentTypes(config: ContentstackConfig, languageCode: 
 
     return Array.from(contentTypes).sort().map(type => ({
         uid: type,
-        title: type // Content types for assets are MIME types, so title is same as uid
+        title: type
     }));
 }
 
@@ -71,22 +64,21 @@ export async function getAssets(config: ContentstackConfig, languageCode: string
     const stack = getStack(config);
     const allowedContentTypesSet = new Set(contentTypes);
 
-    // Fetch assets. Pagination needed?
-    // Original script did pagination. We should too.
-    // For the web app, maybe we fetch first 100 and allow "load more" or fetch all with progress?
-    // Fetching ALL might be heavy. Let's fetch up to 500 for now or implement pagination.
-    // Let's implement a generator or just fetch all with a limit.
-
     const limit = 100;
     let skip = 0;
     let allAssets: Asset[] = [];
     let hasMore = true;
 
-    // Safety limit to prevent browser crash if too many
-    const MAX_ASSETS = 1000;
+    const MAX_ASSETS = 5000;
 
     while (hasMore && allAssets.length < MAX_ASSETS) {
-        const response = await stack.asset().query({ skip, limit, locale: languageCode }).find();
+        const response = await stack.asset().query({
+            skip,
+            limit,
+            locale: languageCode,
+            include_count: true
+        }).find();
+
         const items = response.items || [];
 
         if (items.length < limit) {
@@ -97,12 +89,12 @@ export async function getAssets(config: ContentstackConfig, languageCode: string
             const contentType = asset.content_type || '';
             const isAllowed = allowedContentTypesSet.has(contentType);
             const description = asset.description || '';
-            // We want assets WITHOUT description (or empty)
             return isAllowed && !description.trim();
         });
 
         allAssets = [...allAssets, ...filtered];
         skip += limit;
+
     }
 
     return allAssets.map((asset: Asset) => ({
@@ -111,7 +103,7 @@ export async function getAssets(config: ContentstackConfig, languageCode: string
         filename: asset.filename,
         title: asset.title || '',
         locale: languageCode,
-        localeName: '', // We might need to pass locale name or fetch it
+        localeName: '',
         description: asset.description,
         width: asset.dimension?.width,
         height: asset.dimension?.height,
@@ -132,7 +124,6 @@ export async function getAssetReferences(config: ContentstackConfig, assetUid: s
     }
 }
 
-// Helper to find usages (simplified version of original script)
 export async function getEntryTitle(config: ContentstackConfig, contentTypeUid: string, entryUid: string, locale: string) {
     const stack = getStack(config);
     try {
