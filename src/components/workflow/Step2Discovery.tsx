@@ -217,150 +217,170 @@ export default function Step2Discovery() {
                     <CardDescription>Select languages and content types to discover images.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Languages Section */}
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-medium leading-none">Languages</h3>
-                        {loadingLanguages ? (
-                            <div className="flex items-center p-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading languages...
-                            </div>
-                        ) : (
-                            <ScrollArea className="h-[150px] w-full rounded-md border p-4">
-                                <div className="space-y-1">
-                                    {languages.map((lang, index) => (
-                                        <div
-                                            key={lang.code}
-                                            className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${state.selectedLanguages.some(l => l.code === lang.code)
-                                                ? 'bg-primary/10 text-primary font-medium'
-                                                : 'hover:bg-muted'
-                                                }`}
-                                            onClick={() => toggleLanguage(lang)}
-                                        >
-                                            <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                                            <span className="flex-1">{lang.name} ({lang.code})</span>
-                                            {state.selectedLanguages.some(l => l.code === lang.code) && (
-                                                <CheckCircle2 className="h-4 w-4 text-primary" />
-                                            )}
-                                        </div>
-                                    ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-medium leading-none">Languages</h3>
+                            {loadingLanguages ? (
+                                <div className="flex items-center p-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading languages...
                                 </div>
-                            </ScrollArea>
-                        )}
-                    </div>
-
-                    {/* Content Types Section */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium leading-none">Content Types</h3>
-                            {loadingContentTypes && (
-                                <span className="flex items-center text-xs text-muted-foreground">
-                                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Discovering...
-                                </span>
+                            ) : (
+                                <ScrollArea className="h-[150px] w-full rounded-md border p-4">
+                                    <div className="space-y-1">
+                                        {languages.map((lang, index) => (
+                                            <div
+                                                key={lang.code}
+                                                className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${state.selectedLanguages.some(l => l.code === lang.code)
+                                                    ? 'bg-primary/10 text-primary font-medium'
+                                                    : 'hover:bg-muted'
+                                                    }`}
+                                                onClick={() => toggleLanguage(lang)}
+                                            >
+                                                <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
+                                                <span className="flex-1">{lang.name} ({lang.code})</span>
+                                                {state.selectedLanguages.some(l => l.code === lang.code) && (
+                                                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
                             )}
                         </div>
-
-                        {!loadingContentTypes && contentTypes.length === 0 && state.selectedLanguages.length > 0 && (
-                            <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50">
-                                No content types found for selected languages.
-                            </div>
-                        )}
-
-                        {!loadingContentTypes && state.selectedLanguages.length === 0 && (
-                            <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50">
-                                Select a language to see content types.
-                            </div>
-                        )}
-
-                        {contentTypes.length > 0 && (
-                            <ScrollArea className="h-[150px] w-full rounded-md border p-4">
-                                <div className="space-y-1">
-                                    {contentTypes.map((type, index) => (
-                                        <div
-                                            key={type.uid}
-                                            className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${state.selectedContentTypes.some(t => t.uid === type.uid)
-                                                ? 'bg-primary/10 text-primary font-medium'
-                                                : 'hover:bg-muted'
-                                                }`}
-                                            onClick={() => toggleContentType(type)}
-                                        >
-                                            <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                                            <span className="flex-1">{type.title}</span>
-                                            {state.selectedContentTypes.some(t => t.uid === type.uid) && (
-                                                <CheckCircle2 className="h-4 w-4 text-primary" />
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        )}
-                    </div>
-
-                    {/* Content Section (New) */}
-                    {(hasDiscoveredImages || loadingImages) && state.selectedContentTypes.length > 0 && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-medium leading-none">Content</h3>
-                                {loadingImages ? (
+                                <h3 className="text-sm font-medium leading-none">Content Types</h3>
+                                {loadingContentTypes && (
                                     <span className="flex items-center text-xs text-muted-foreground">
-                                        <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading images...
-                                    </span>
-                                ) : (
-                                    <span className="text-xs text-muted-foreground">
-                                        {selectedImageUids.size} selected / {uniqueDisplayImages.length} total
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" /> Discovering...
                                     </span>
                                 )}
                             </div>
 
-                            {!loadingImages && hasDiscoveredImages && (
-                                <>
-                                    <div className="flex items-center space-x-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Search by filename or ID..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                        <Button variant="outline" size="sm" onClick={handleSelectAll}>All</Button>
-                                        <Button variant="outline" size="sm" onClick={handleDeselectAll}>None</Button>
+                            {loadingContentTypes ? (
+                                <div className="h-[150px] w-full rounded-md border p-4 flex items-center justify-center">
+                                    <div className="flex items-center text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading content types...
                                     </div>
-
-                                    <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-                                        <div className="space-y-1">
-                                            {uniqueDisplayImages.length === 0 ? (
-                                                <div className="text-sm text-muted-foreground text-center py-4">
-                                                    No images match your search.
-                                                </div>
-                                            ) : (
-                                                uniqueDisplayImages.map((img) => (
-                                                    <div
-                                                        key={img.uid}
-                                                        className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${selectedImageUids.has(img.uid)
-                                                            ? 'bg-primary/10 text-primary font-medium'
-                                                            : 'hover:bg-muted'
-                                                            }`}
-                                                        onClick={() => toggleImageSelection(img.uid)}
-                                                    >
-                                                        <div className="flex-shrink-0">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img src={img.url} alt={img.filename} className="h-10 w-10 object-cover rounded" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm truncate">{img.filename}</p>
-                                                            <p className="text-xs text-muted-foreground truncate">{img.title}</p>
-                                                        </div>
-                                                        {selectedImageUids.has(img.uid) && (
-                                                            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
-                                                        )}
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </ScrollArea>
-                                </>
+                                </div>
+                            ) : contentTypes.length === 0 && state.selectedLanguages.length > 0 ? (
+                                <div className="h-[150px] w-full rounded-md border p-4 flex items-center justify-center">
+                                    <div className="text-sm text-muted-foreground">
+                                        No content types found for selected languages.
+                                    </div>
+                                </div>
+                            ) : state.selectedLanguages.length === 0 ? (
+                                <div className="h-[150px] w-full rounded-md border p-4 flex items-center justify-center">
+                                    <div className="text-sm text-muted-foreground">
+                                        Select a language to see content types.
+                                    </div>
+                                </div>
+                            ) : (
+                                <ScrollArea className="h-[150px] w-full rounded-md border p-4">
+                                    <div className="space-y-1">
+                                        {contentTypes.map((type, index) => (
+                                            <div
+                                                key={type.uid}
+                                                className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${state.selectedContentTypes.some(t => t.uid === type.uid)
+                                                    ? 'bg-primary/10 text-primary font-medium'
+                                                    : 'hover:bg-muted'
+                                                    }`}
+                                                onClick={() => toggleContentType(type)}
+                                            >
+                                                <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
+                                                <span className="flex-1">{type.title}</span>
+                                                {state.selectedContentTypes.some(t => t.uid === type.uid) && (
+                                                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
                             )}
                         </div>
-                    )}
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium leading-none">Content</h3>
+                            {loadingImages ? (
+                                <span className="flex items-center text-xs text-muted-foreground">
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" /> Loading images...
+                                </span>
+                            ) : hasDiscoveredImages ? (
+                                <span className="text-xs text-muted-foreground">
+                                    {selectedImageUids.size} selected / {uniqueDisplayImages.length} total
+                                </span>
+                            ) : null}
+                        </div>
+
+                        {loadingImages ? (
+                            <div className="h-[300px] w-full rounded-md border p-4 flex items-center justify-center">
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading images...
+                                </div>
+                            </div>
+                        ) : !hasDiscoveredImages && state.selectedContentTypes.length === 0 ? (
+                            <div className="h-[300px] w-full rounded-md border p-4 flex items-center justify-center">
+                                <div className="text-sm text-muted-foreground">
+                                    Select content types to see images.
+                                </div>
+                            </div>
+                        ) : !hasDiscoveredImages ? (
+                            <div className="h-[300px] w-full rounded-md border p-4 flex items-center justify-center">
+                                <div className="text-sm text-muted-foreground">
+                                    No images found without description.
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by filename or ID..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                    <Button variant="outline" size="sm" onClick={handleSelectAll}>All</Button>
+                                    <Button variant="outline" size="sm" onClick={handleDeselectAll}>None</Button>
+                                </div>
+
+                                <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+                                    <div className="space-y-1">
+                                        {uniqueDisplayImages.length === 0 ? (
+                                            <div className="text-sm text-muted-foreground text-center py-4">
+                                                No images match your search.
+                                            </div>
+                                        ) : (
+                                            uniqueDisplayImages.map((img) => (
+                                                <div
+                                                    key={img.uid}
+                                                    className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer transition-colors ${selectedImageUids.has(img.uid)
+                                                        ? 'bg-primary/10 text-primary font-medium'
+                                                        : 'hover:bg-muted'
+                                                        }`}
+                                                    onClick={() => toggleImageSelection(img.uid)}
+                                                >
+                                                    <div className="shrink-0">
+                                                        <img src={img.url} alt={img.filename} className="h-10 w-10 object-cover rounded" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm truncate">{img.filename}</p>
+                                                        <p className="text-xs text-muted-foreground truncate">{img.title}</p>
+                                                    </div>
+                                                    {selectedImageUids.has(img.uid) && (
+                                                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </ScrollArea>
+                            </>
+                        )}
+                    </div>
+
 
                 </CardContent>
                 <CardFooter>
