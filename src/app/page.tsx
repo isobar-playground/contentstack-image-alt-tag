@@ -4,7 +4,7 @@ import React, { lazy, Suspense } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { ChevronDown, RotateCcw } from 'lucide-react';
+import { ChevronDown, RotateCcw, Copy } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { toast } from 'sonner';
 
 const LazyStep1Configuration = lazy(() => import('@/components/workflow/Step1Configuration'));
 const LazyStep2Discovery = lazy(() => import('@/components/workflow/Step2Discovery'));
@@ -21,8 +22,14 @@ const LazyStep5ResultReview = lazy(() => import('@/components/workflow/Step5Resu
 const LazyStep6Update = lazy(() => import('@/components/workflow/Step6Update'));
 
 export default function Home() {
-    const { state, setStep, resetWorkflow, resetToImageReview, fullReset } = useAppContext();
+    const { state, setStep, resetWorkflow, resetToImageReview, fullReset, getSessionKey } = useAppContext();
     const confirmDialog = useConfirmDialog();
+
+    const handleCopySessionKey = () => {
+        const key = getSessionKey();
+        navigator.clipboard.writeText(key);
+        toast.success('Session key copied to clipboard');
+    };
 
     const renderStep = () => {
         switch (state.step) {
@@ -89,6 +96,10 @@ export default function Home() {
                     Alt Tag Generator
                 </h1>
                 <div className="flex items-center gap-4">
+                    <Button variant="outline" size="sm" onClick={handleCopySessionKey}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Session Key
+                    </Button>
                     <ThemeToggle />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

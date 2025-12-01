@@ -12,15 +12,28 @@ import { Loader2 } from 'lucide-react';
 import { getEnvironments, validateOpenAIKey } from '@/app/actions';
 import { parseContentstackError } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from '@/components/ui/textarea';
+import { Upload } from 'lucide-react';
 
 export default function Step1Configuration() {
-    const { state, updateConfig, setStep } = useAppContext();
+    const { state, updateConfig, setStep, restoreSession } = useAppContext();
 
     const [formData, setFormData] = useState(state.config);
     const [environments, setEnvironments] = useState<{ uid: string; name: string }[]>([]);
     const [loadingEnvs, setLoadingEnvs] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [envError, setEnvError] = useState<string>('');
+    const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+    const [sessionKeyInput, setSessionKeyInput] = useState('');
 
     useEffect(() => {
         setFormData(state.config);
@@ -118,9 +131,50 @@ export default function Step1Configuration() {
         toast.success('Configuration saved! Starting workflow...');
     };
 
+    const handleRestoreSession = () => {
+        if (!sessionKeyInput.trim()) return;
+
+        const success = restoreSession(sessionKeyInput.trim());
+        if (success) {
+            toast.success('Session restored successfully');
+            setRestoreDialogOpen(false);
+            setSessionKeyInput('');
+        } else {
+            toast.error('Invalid session key');
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative">
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex gap-2">
+                <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            <Upload className="mr-2 h-4 w-4" />
+                            Restore Session
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Restore Session</DialogTitle>
+                            <DialogDescription>
+                                Paste your session key below to restore your previous work.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Textarea
+                                placeholder="Paste session key here..."
+                                value={sessionKeyInput}
+                                onChange={(e) => setSessionKeyInput(e.target.value)}
+                                className="h-[150px] break-all resize-none"
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setRestoreDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleRestoreSession}>Restore</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
                 <ThemeToggle />
             </div>
             <Card className="w-full max-w-2xl shadow-lg">

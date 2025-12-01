@@ -12,6 +12,8 @@ interface AppContextType {
     resetToImageReview: () => void;
     fullReset: () => void;
     setStep: (step: number) => void;
+    getSessionKey: () => string;
+    restoreSession: (key: string) => boolean;
 }
 
 const defaultState: AppState = {
@@ -117,6 +119,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             resetWorkflow,
             resetToImageReview,
             fullReset,
+            getSessionKey: () => {
+                const json = JSON.stringify(state);
+                return btoa(encodeURIComponent(json));
+            },
+            restoreSession: (key: string) => {
+                try {
+                    const json = decodeURIComponent(atob(key));
+                    const parsed = JSON.parse(json);
+                    // Basic validation
+                    if (typeof parsed !== 'object' || !parsed.config) {
+                        throw new Error('Invalid session data');
+                    }
+                    setState(parsed);
+                    return true;
+                } catch (e) {
+                    console.error('Failed to restore session', e);
+                    return false;
+                }
+            }
         }}>
             {children}
         </AppContext.Provider>

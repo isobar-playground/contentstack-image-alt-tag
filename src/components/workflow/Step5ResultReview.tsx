@@ -7,14 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
 
 import { ImageAsset } from '@/lib/types';
 
 export default function Step5ResultReview() {
-    const { state, setState, setStep } = useAppContext();
+    const { state, setState, setStep, getSessionKey } = useAppContext();
     const confirmDialog = useConfirmDialog();
 
 
@@ -162,6 +162,12 @@ Brand: ${state.config.brandName}`;
         toast.success('HTML report exported successfully!');
     };
 
+    const handleCopySessionKey = () => {
+        const key = getSessionKey();
+        navigator.clipboard.writeText(key);
+        toast.success('Session key copied to clipboard');
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -238,6 +244,14 @@ Brand: ${state.config.brandName}`;
                     </ScrollArea>
                 </CardContent>
                 <CardFooter className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleCopySessionKey}
+                        className="flex-1"
+                    >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Session Key
+                    </Button>
                     <Button
                         variant="outline"
                         onClick={handleRegenerate}
