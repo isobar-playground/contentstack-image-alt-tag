@@ -178,13 +178,22 @@ export default function Step4BatchProcessing() {
     }, [state.config, setState, stopPolling, handleDownloadResults]);
 
     useEffect(() => {
-        if (state.batchInfo && state.batchInfo.status !== 'completed' && state.batchInfo.status !== 'failed' && state.batchInfo.status !== 'cancelled' && state.batchInfo.status !== 'expired') {
-            const batchInfo = state.batchInfo;
-            setTimeout(() => startPolling(batchInfo.batchId), 0);
+        if (!state.batchInfo) {
+            return;
         }
 
-        return () => stopPolling();
-    }, [state.batchInfo, startPolling, stopPolling]);
+        const status = state.batchInfo.status;
+        if (status === 'completed' || status === 'failed' || status === 'cancelled' || status === 'expired') {
+            return;
+        }
+
+        startPolling(state.batchInfo.batchId);
+
+        return () => {
+            stopPolling();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.batchInfo?.batchId, state.batchInfo?.status]);
 
     const prepareRequests = () => {
         const instructions = masterPrompt;
@@ -309,7 +318,6 @@ export default function Step4BatchProcessing() {
                 <CardContent className="space-y-6">
                     {!state.batchInfo ? (
                         <>
-                            {/* Images Preview */}
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-lg">Images to Process ({activeImages.length})</h3>
                                 <ScrollArea className="h-[200px] w-full rounded-md border p-3 bg-muted">
@@ -331,7 +339,6 @@ export default function Step4BatchProcessing() {
                                 </ScrollArea>
                             </div>
 
-                            {/* OpenAI Configuration */}
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-lg">OpenAI Configuration</h3>
                                 <div className="space-y-4">
@@ -382,7 +389,6 @@ export default function Step4BatchProcessing() {
                                 </div>
                             </div>
 
-                            {/* Brand Name Input */}
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-lg">Brand Name (Optional)</h3>
                                 <Input
@@ -395,7 +401,6 @@ export default function Step4BatchProcessing() {
                                 <p className="text-xs text-gray-500">Used to provide context to the AI.</p>
                             </div>
 
-                            {/* Master Prompt */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-semibold text-lg">Master Prompt</h3>
