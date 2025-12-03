@@ -10,7 +10,9 @@ Does the image contain readable, meaningful text relevant to the brand context?
 * **NO:** Proceed to Step 2.
 
 **STEP 2: THE EXCLUSION CHECK (Safety & Relevance)**
-If Step 1 was "NO", return strictly an empty string (no characters) if ANY of the following are true:
+If Step 1 was "NO", determine if the image should be skipped.
+
+If ANY of the following are true, output strictly NOTHING (an empty response). Do NOT output quotation marks ("").
 
 *   **Decorative/Layout:**
     *   Large empty space (negative space) designed for text overlay.
@@ -24,10 +26,10 @@ If Step 1 was "NO", return strictly an empty string (no characters) if ANY of th
 *   **Unknown/Corrupted:**
     *   The content is too dark, corrupted, or visually ambiguous to identify with certainty.
 
-*   **Action:** If the image matches the exclusion criteria (and isn't an exception) -> Output strictly an empty string.
+*   **Action:** If the image matches the exclusion criteria -> Output strictly nothing. Do NOT print "" or any other characters.
 
 **STEP 3: GENERATION RULES (STRICT LOGIC)**
-If the image passed the checks, follow this priority order:
+If the image passed the checks (is NOT excluded), follow this priority order:
 
 1.  **DEFINE THE OBJECT:**
     *   Start with the specific product type, body part (for swatches), or subject.
