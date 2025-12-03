@@ -7,15 +7,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Trash2, Copy } from 'lucide-react';
+import { Trash2, Copy, X, Loader2 } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 import { ImageAsset } from '@/lib/types';
 
 export default function Step5ResultReview() {
     const { state, setState, setStep, getSessionKey } = useAppContext();
     const confirmDialog = useConfirmDialog();
+    const [lightboxImage, setLightboxImage] = useState<ImageAsset | null>(null);
+    const [imageLoading, setImageLoading] = useState(false);
+
+    // Handle ESC key to close lightbox
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && lightboxImage) {
+                setLightboxImage(null);
+                setImageLoading(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxImage]);
 
 
     const activeImages = state.images.filter(img => img.status === 'active' && img.generatedAltText !== undefined);
@@ -194,7 +210,13 @@ Brand: ${state.config.brandName}`;
                                 {activeImages.map((image) => (
                                     <div key={image.uid} className="bg-card border rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-4">
                                         <div className="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
-                                            <div className="aspect-square relative bg-muted rounded-md overflow-hidden border">
+                                            <div
+                                                className="aspect-square relative bg-muted rounded-md overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={() => {
+                                                    setImageLoading(true);
+                                                    setLightboxImage(image);
+                                                }}
+                                            >
                                                 <Image
                                                     src={image.url}
                                                     alt={image.filename || "Image"}
@@ -275,6 +297,59 @@ Brand: ${state.config.brandName}`;
                     </Button>
                 </CardFooter>
             </Card>
+
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                    onClick={() => {
+                        setLightboxImage(null);
+                        setImageLoading(false);
+                    }}
+                >
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-4 right-4 text-white hover:bg-white/20"
+                        onClick={() => {
+                            setLightboxImage(null);
+                            setImageLoading(false);
+                        }}
+                    >
+                        <X className="h-6 w-6" />
+                    </Button>
+
+                    <div
+                        className="max-w-7xl max-h-[90vh] flex flex-col items-center"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="relative mb-4 max-h-[calc(90vh-120px)] min-h-[400px] flex items-center justify-center">
+                            {imageLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center z-10">
+                                    <Loader2 className="h-12 w-12 text-white animate-spin" />
+                                </div>
+                            )}
+                            <Image
+                                src={lightboxImage.url}
+                                alt={lightboxImage.generatedAltText || lightboxImage.filename || "Image"}
+                                width={1200}
+                                height={1200}
+                                className={`object-contain max-h-[calc(90vh-120px)] w-auto transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                                priority
+                                onLoadingComplete={() => setImageLoading(false)}
+                                onLoad={() => setImageLoading(false)}
+                            />
+                        </div>
+
+                        {!imageLoading && (
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 max-w-3xl w-full animate-in fade-in duration-300">
+                                <p className="text-base text-gray-900 dark:text-white">
+                                    {lightboxImage.generatedAltText || '(No alt text generated)'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
