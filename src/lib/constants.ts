@@ -39,6 +39,7 @@ If the image passed the checks (is NOT excluded), follow this priority order:
     *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
 
 3.  **VISUAL SUPPORT:**
+    *   **AVOID REDUNDANCY:** Do NOT repeat information (e.g., color) and do NOT describe obvious shapes (e.g., "rectangular box") if the object type is already defined.
     *   Mention key visual elements (e.g., "with amber stones").
     *   If describing a model/swatch, focus solely on the cosmetic attribute (e.g., "glossy finish", "volumized lashes").
 
