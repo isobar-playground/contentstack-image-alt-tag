@@ -9,7 +9,9 @@ export function downloadSessionKey(key: string, filename = DEFAULT_SESSION_KEY_F
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 0);
 }
 
 export async function readSessionKeyFile(file: File): Promise<string> {
