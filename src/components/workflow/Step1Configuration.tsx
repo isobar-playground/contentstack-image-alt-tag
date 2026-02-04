@@ -137,23 +137,36 @@ export default function Step1Configuration() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        setSelectedFileName(file.name);
-        const key = await readSessionKeyFile(file);
-        if (!key) {
-            toast.error('Session key file is empty');
-            return;
-        }
-
-        const success = restoreSession(key);
-        if (success) {
-            toast.success('Session restored successfully');
-            setRestoreDialogOpen(false);
+        const resetFileInput = () => {
             setSelectedFileName('');
             if (restoreFileInputRef.current) {
                 restoreFileInputRef.current.value = '';
             }
-        } else {
-            toast.error('Invalid session key');
+        };
+
+        setSelectedFileName(file.name);
+
+        try {
+            const key = await readSessionKeyFile(file);
+            if (!key) {
+                toast.error('Session key file is empty');
+                resetFileInput();
+                return;
+            }
+
+            const success = restoreSession(key);
+            if (success) {
+                toast.success('Session restored successfully');
+                setRestoreDialogOpen(false);
+                resetFileInput();
+            } else {
+                toast.error('Invalid session key');
+                resetFileInput();
+            }
+        } catch (error) {
+            console.error('Failed to restore session from file', error);
+            toast.error('Failed to read session key file');
+            resetFileInput();
         }
     };
 
