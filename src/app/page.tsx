@@ -4,7 +4,7 @@ import React, { lazy, Suspense } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { ChevronDown, RotateCcw, Copy } from 'lucide-react';
+import { ChevronDown, RotateCcw, Download } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { toast } from 'sonner';
+import { downloadSessionKey } from '@/lib/sessionKey';
 
 const LazyStep1Configuration = lazy(() => import('@/components/workflow/Step1Configuration'));
 const LazyStep2Discovery = lazy(() => import('@/components/workflow/Step2Discovery'));
@@ -25,10 +26,10 @@ export default function Home() {
     const { state, setStep, resetWorkflow, resetToImageReview, fullReset, getSessionKey } = useAppContext();
     const confirmDialog = useConfirmDialog();
 
-    const handleCopySessionKey = () => {
+    const handleExportSessionKey = () => {
         const key = getSessionKey();
-        navigator.clipboard.writeText(key);
-        toast.success('Session key copied to clipboard');
+        downloadSessionKey(key);
+        toast.success('Session key saved to file');
     };
 
     const renderStep = () => {
@@ -96,9 +97,9 @@ export default function Home() {
                     Alt Tag Generator
                 </h1>
                 <div className="flex items-center gap-4">
-                    <Button variant="outline" size="sm" onClick={handleCopySessionKey}>
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy Session Key
+                    <Button variant="outline" size="sm" onClick={handleExportSessionKey}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Session Key
                     </Button>
                     <ThemeToggle />
                     <DropdownMenu>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +21,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from '@/components/ui/textarea';
 import { Upload } from 'lucide-react';
+import { readSessionKeyFile } from '@/lib/sessionKey';
 
 export default function Step1Configuration() {
     const { state, updateConfig, setStep, restoreSession } = useAppContext();
@@ -33,7 +33,8 @@ export default function Step1Configuration() {
     const [isTyping, setIsTyping] = useState(false);
     const [envError, setEnvError] = useState<string>('');
     const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
-    const [sessionKeyInput, setSessionKeyInput] = useState('');
+    const [selectedFileName, setSelectedFileName] = useState('');
+    const restoreFileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         setFormData(state.config);
@@ -132,14 +133,25 @@ export default function Step1Configuration() {
         toast.success('Configuration saved! Starting workflow...');
     };
 
-    const handleRestoreSession = () => {
-        if (!sessionKeyInput.trim()) return;
+    const handleRestoreSession = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-        const success = restoreSession(sessionKeyInput.trim());
+        setSelectedFileName(file.name);
+        const key = await readSessionKeyFile(file);
+        if (!key) {
+            toast.error('Session key file is empty');
+            return;
+        }
+
+        const success = restoreSession(key);
         if (success) {
             toast.success('Session restored successfully');
             setRestoreDialogOpen(false);
-            setSessionKeyInput('');
+            setSelectedFileName('');
+            if (restoreFileInputRef.current) {
+                restoreFileInputRef.current.value = '';
+            }
         } else {
             toast.error('Invalid session key');
         }
@@ -159,20 +171,25 @@ export default function Step1Configuration() {
                         <DialogHeader>
                             <DialogTitle>Restore Session</DialogTitle>
                             <DialogDescription>
-                                Paste your session key below to restore your previous work.
+                                Import a .key file to restore your previous work.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
-                            <Textarea
-                                placeholder="Paste session key here..."
-                                value={sessionKeyInput}
-                                onChange={(e) => setSessionKeyInput(e.target.value)}
-                                className="h-[150px] break-all resize-none"
+                            <input
+                                ref={restoreFileInputRef}
+                                type="file"
+                                accept=".key"
+                                onChange={handleRestoreSession}
+                                className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
                             />
+                            {selectedFileName && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Selected file: {selectedFileName}
+                                </p>
+                            )}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setRestoreDialogOpen(false)}>Cancel</Button>
-                            <Button onClick={handleRestoreSession}>Restore</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
