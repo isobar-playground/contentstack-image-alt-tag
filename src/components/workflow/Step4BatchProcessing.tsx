@@ -374,7 +374,7 @@ export default function Step4BatchProcessing() {
                                                             <div className="flex flex-col">
                                                                 <span className="font-medium">{model.name}</span>
                                                                 <span className="text-xs text-muted-foreground">
-                                                                    ${model.inputPrice.toFixed(2)} / ${model.outputPrice.toFixed(2)} per 1M tokens
+                                                                    ${model.inputPrice.toFixed(2)} / ${model.outputPrice.toFixed(2)} per 1M tokens (batch)
                                                                 </span>
                                                             </div>
                                                         </div>
