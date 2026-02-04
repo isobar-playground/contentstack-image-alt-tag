@@ -17,7 +17,7 @@ interface AppContextType {
     restoreSession: (key: string) => boolean;
 }
 
-const defaultModelId = OPENAI_MODELS[0]?.id ?? 'gpt-5.2';
+const defaultModelId = OPENAI_MODELS[0]?.id ?? 'gpt-5';
 
 const defaultState: AppState = {
     step: 1,
