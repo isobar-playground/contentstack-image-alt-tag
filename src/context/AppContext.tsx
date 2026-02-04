@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { AppState, AppConfig } from '@/lib/types';
 import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
+import { OPENAI_MODELS } from '@/lib/openai';
 
 interface AppContextType {
     state: AppState;
@@ -16,6 +17,8 @@ interface AppContextType {
     restoreSession: (key: string) => boolean;
 }
 
+const defaultModelId = OPENAI_MODELS[0]?.id ?? 'gpt-5.2';
+
 const defaultState: AppState = {
     step: 1,
     config: {
@@ -23,7 +26,7 @@ const defaultState: AppState = {
         contentstackManagementToken: '',
         contentstackEnvironment: '',
         openaiApiKey: '',
-        openaiModel: 'gpt-5.2',
+        openaiModel: defaultModelId,
         brandName: '',
         masterPrompt: DEFAULT_MASTER_PROMPT,
     },
@@ -47,6 +50,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const saved = sessionStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
+                const restoredModel = parsed?.config?.openaiModel;
+                const hasModel = OPENAI_MODELS.some((model) => model.id === restoredModel);
+                if (!hasModel) {
+                    parsed.config = {
+                        ...parsed.config,
+                        openaiModel: defaultModelId,
+                    };
+                }
 
                 setState((prev) => ({ ...prev, ...parsed }));
             }
