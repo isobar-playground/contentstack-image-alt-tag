@@ -64,11 +64,19 @@ export async function validateOpenAIKey(config: OpenAIConfig) {
 }
 
 export const OPENAI_MODELS = [
+    { id: 'gpt-5', name: 'GPT-5', inputPrice: 0.625, outputPrice: 5.00 },
+    { id: 'gpt-5-mini', name: 'GPT-5 mini', inputPrice: 0.125, outputPrice: 1.00 },
+    { id: 'gpt-5-nano', name: 'GPT-5 nano', inputPrice: 0.025, outputPrice: 0.20 },
     { id: 'gpt-4.1', name: 'GPT-4.1', inputPrice: 1.00, outputPrice: 4.00 },
-    { id: 'gpt-4.1-mini', name: 'GPT-4.1-mini', inputPrice: 0.20, outputPrice: 0.80 },
-    { id: 'gpt-4.1-nano', name: 'GPT-4.1-nano', inputPrice: 0.05, outputPrice: 0.20 },
+    { id: 'gpt-4.1-mini', name: 'GPT-4.1 mini', inputPrice: 0.20, outputPrice: 0.80 },
+    { id: 'gpt-4.1-nano', name: 'GPT-4.1 nano', inputPrice: 0.05, outputPrice: 0.20 },
     { id: 'gpt-4o', name: 'GPT-4o', inputPrice: 1.25, outputPrice: 5.00 },
-    { id: 'gpt-4o-mini', name: 'gpt-4o-mini', inputPrice: 0.075, outputPrice: 0.30 },
+    { id: 'gpt-4o-mini', name: 'GPT-4o mini', inputPrice: 0.075, outputPrice: 0.30 },
+    { id: 'o1', name: 'o1', inputPrice: 7.50, outputPrice: 30.00 },
+    { id: 'o1-pro', name: 'o1-pro', inputPrice: 75.00, outputPrice: 300.00 },
+    { id: 'o3', name: 'o3', inputPrice: 1.00, outputPrice: 4.00 },
+    { id: 'o4-mini', name: 'o4-mini', inputPrice: 0.55, outputPrice: 2.20 },
+    { id: 'computer-use-preview', name: 'computer-use-preview', inputPrice: 1.50, outputPrice: 6.00 },
 ];
 
 export function calculateImageTokens(width: number, height: number, detail: 'low' | 'high' = 'high'): number {
