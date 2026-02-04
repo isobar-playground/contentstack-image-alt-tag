@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,29 +10,41 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Copy, Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
+import { downloadSessionKey, readSessionKeyFile } from '@/lib/sessionKey';
 
 export function SessionFooter() {
     const { getSessionKey, restoreSession } = useAppContext();
     const [isOpen, setIsOpen] = useState(false);
-    const [sessionKeyInput, setSessionKeyInput] = useState('');
+    const [selectedFileName, setSelectedFileName] = useState('');
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const handleCopyKey = () => {
+    const handleExportKey = () => {
         const key = getSessionKey();
-        navigator.clipboard.writeText(key);
-        toast.success('Session key copied to clipboard');
+        downloadSessionKey(key);
+        toast.success('Session key saved to file');
     };
 
-    const handleRestore = () => {
-        if (!sessionKeyInput.trim()) return;
+    const handleRestoreFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-        const success = restoreSession(sessionKeyInput.trim());
+        setSelectedFileName(file.name);
+        const key = await readSessionKeyFile(file);
+        if (!key) {
+            toast.error('Session key file is empty');
+            return;
+        }
+
+        const success = restoreSession(key);
         if (success) {
             toast.success('Session restored successfully');
             setIsOpen(false);
-            setSessionKeyInput('');
+            setSelectedFileName('');
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         } else {
             toast.error('Invalid session key');
         }
@@ -44,9 +56,9 @@ export function SessionFooter() {
                 Session Management
             </div>
             <div className="flex gap-4">
-                <Button variant="outline" size="sm" onClick={handleCopyKey}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy Session Key
+                <Button variant="outline" size="sm" onClick={handleExportKey}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Session Key
                 </Button>
 
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -60,20 +72,25 @@ export function SessionFooter() {
                         <DialogHeader>
                             <DialogTitle>Restore Session</DialogTitle>
                             <DialogDescription>
-                                Paste your session key below to restore your previous work.
+                                Import a .key file to restore your previous work.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
-                            <Textarea
-                                placeholder="Paste session key here..."
-                                value={sessionKeyInput}
-                                onChange={(e) => setSessionKeyInput(e.target.value)}
-                                className="min-h-[100px]"
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".key"
+                                onChange={handleRestoreFile}
+                                className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
                             />
+                            {selectedFileName && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Selected file: {selectedFileName}
+                                </p>
+                            )}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                            <Button onClick={handleRestore}>Restore</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

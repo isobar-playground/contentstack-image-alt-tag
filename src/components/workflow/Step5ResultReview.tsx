@@ -7,12 +7,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Trash2, Copy, X, Loader2 } from 'lucide-react';
+import { Trash2, Download, X, Loader2 } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 
 import { ImageAsset } from '@/lib/types';
+import { downloadSessionKey } from '@/lib/sessionKey';
 
 export default function Step5ResultReview() {
     const { state, setState, setStep, getSessionKey } = useAppContext();
@@ -178,10 +179,10 @@ Brand: ${state.config.brandName}`;
         toast.success('HTML report exported successfully!');
     };
 
-    const handleCopySessionKey = () => {
+    const handleExportSessionKey = () => {
         const key = getSessionKey();
-        navigator.clipboard.writeText(key);
-        toast.success('Session key copied to clipboard');
+        downloadSessionKey(key);
+        toast.success('Session key saved to file');
     };
 
     return (
@@ -268,11 +269,11 @@ Brand: ${state.config.brandName}`;
                 <CardFooter className="flex gap-2">
                     <Button
                         variant="outline"
-                        onClick={handleCopySessionKey}
+                        onClick={handleExportSessionKey}
                         className="flex-1"
                     >
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy Session Key
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Session Key
                     </Button>
                     <Button
                         variant="outline"
