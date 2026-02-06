@@ -232,7 +232,12 @@ Brand: ${state.config.brandName}`;
             activeImages.forEach((image, index) => {
                 const rowNumber = index + 2;
                 const cellAddress = `B${rowNumber}`;
-                const safeUrl = image.url.replace(/"/g, '""');
+                const thumbnailUrl = new URL(image.url);
+                thumbnailUrl.searchParams.set('width', '300');
+                thumbnailUrl.searchParams.set('height', '300');
+                thumbnailUrl.searchParams.set('fit', 'scale-down');
+                thumbnailUrl.searchParams.set('quality', '85');
+                const safeUrl = thumbnailUrl.toString().replace(/"/g, '""');
                 worksheet[cellAddress] = {
                     t: 'n',
                     f: `_xlfn.IMAGE("${safeUrl}",,1,300,300)`
