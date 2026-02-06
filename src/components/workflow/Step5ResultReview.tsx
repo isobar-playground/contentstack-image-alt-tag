@@ -273,6 +273,9 @@ Brand: ${state.config.brandName}`;
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Alt Tags');
+            workbook.Workbook = {
+                CalcPr: { fullCalc: true, calcId: 1 }
+            };
             XLSX.writeFile(workbook, filename, { bookType: 'xlsx' });
             toast.success('XLSX exported successfully!');
         } catch (error) {
