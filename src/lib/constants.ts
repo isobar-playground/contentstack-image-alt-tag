@@ -45,4 +45,5 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 4.  **FINAL ASSEMBLY:**
     *   Combine: [Object] + [Visual Context] + "Text: [Layout Text/Headline]".
+    *   If the product text merely repeats the same words already captured in [Visual Context] (e.g., identical product name), omit the "Text: [Layout Text/Headline]" section entirely.
     *   Keep it concise (under 150 chars preferred).`
