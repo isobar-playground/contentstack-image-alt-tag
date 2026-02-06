@@ -388,13 +388,16 @@ Brand: ${state.config.brandName}`;
                 if (!assetId) {
                     return;
                 }
-                const overrideValue = overrideIndex !== -1
-                    ? getCellText(safeRow.getCell(overrideIndex + 1).value).trim()
+                const overrideRaw = overrideIndex !== -1
+                    ? getCellText(safeRow.getCell(overrideIndex + 1).value)
                     : '';
+                const overrideValue = overrideRaw.trim();
                 const aiValue = aiIndex !== -1
                     ? getCellText(safeRow.getCell(aiIndex + 1).value).trim()
                     : '';
-                if (overrideValue) {
+                if (overrideRaw && overrideValue.length === 0) {
+                    updates.set(assetId, '');
+                } else if (overrideValue) {
                     updates.set(assetId, overrideValue);
                 } else if (aiValue) {
                     updates.set(assetId, aiValue);
