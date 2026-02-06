@@ -235,7 +235,7 @@ Brand: ${state.config.brandName}`;
                 const safeUrl = image.url.replace(/"/g, '""');
                 worksheet[cellAddress] = {
                     t: 'n',
-                    f: `IMAGE("${safeUrl}")`
+                    f: `_xlfn.IMAGE("${safeUrl}",,1,300,300)`
                 };
             });
             worksheet['!cols'] = [
