@@ -240,7 +240,7 @@ Brand: ${state.config.brandName}`;
                 const safeUrl = thumbnailUrl.toString().replace(/"/g, '""');
                 worksheet[cellAddress] = {
                     t: 'n',
-                    f: `_xlfn.IMAGE("${safeUrl}",,1,300,300)`
+                    f: `_xlfn.IMAGE("${safeUrl}")`
                 };
             });
             worksheet['!cols'] = [
