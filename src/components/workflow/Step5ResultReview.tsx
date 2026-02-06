@@ -262,7 +262,7 @@ Brand: ${state.config.brandName}`;
             const workbook = XLSX.read(buffer, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(worksheet, { header: 1, defval: '' });
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as (string | number | null)[][];
             if (!rows.length) {
                 toast.error('XLSX file is empty.');
                 return;
