@@ -238,6 +238,35 @@ Brand: ${state.config.brandName}`;
             worksheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
             worksheet.getColumn(4).alignment = { wrapText: true, vertical: 'top' };
 
+            const createScaledImage = async (src: string, maxSize: number) => {
+                const img = new globalThis.Image();
+                const loaded = new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load image'));
+                });
+                img.src = src;
+                await loaded;
+                const width = img.naturalWidth || img.width;
+                const height = img.naturalHeight || img.height;
+                if (!width || !height) {
+                    return { dataUrl: src, width: maxSize, height: maxSize };
+                }
+                const scale = Math.min(1, maxSize / Math.max(width, height));
+                const targetWidth = Math.max(1, Math.round(width * scale));
+                const targetHeight = Math.max(1, Math.round(height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    return { dataUrl: src, width: targetWidth, height: targetHeight };
+                }
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                return { dataUrl: canvas.toDataURL('image/png'), width: targetWidth, height: targetHeight };
+            };
+            const columnWidthToPixels = (width: number) => Math.floor(width * 7 + 5);
+            const pixelsToEmu = (value: number) => Math.round(value * 9525);
+
             for (const image of activeImages) {
                 worksheet.addRow({
                     id: image.uid,
@@ -255,20 +284,30 @@ Brand: ${state.config.brandName}`;
                 row.height = imageRowHeight;
                 const thumbnailUrl = new URL(image.url);
                 thumbnailUrl.searchParams.set('width', '300');
-                thumbnailUrl.searchParams.set('height', '300');
-                thumbnailUrl.searchParams.set('fit', 'scale-down');
+                thumbnailUrl.searchParams.delete('height');
+                thumbnailUrl.searchParams.delete('fit');
                 thumbnailUrl.searchParams.set('quality', '85');
                 const response = await fetch(thumbnailUrl.toString());
                 const blob = await response.blob();
                 const dataUrl = await blobToDataUrl(blob);
-                const extension = blob.type.split('/')[1] || 'png';
+                const scaled = await createScaledImage(dataUrl, 300);
+                const extension = 'png';
                 const imageId = workbook.addImage({
-                    base64: dataUrl,
+                    base64: scaled.dataUrl,
                     extension
                 });
+                const imageCellWidth = columnWidthToPixels(worksheet.getColumn(2).width ?? 43);
+                const imageCellHeight = 300;
+                const offsetX = Math.max(0, Math.floor((imageCellWidth - scaled.width) / 2));
+                const offsetY = Math.max(0, Math.floor((imageCellHeight - scaled.height) / 2));
                 worksheet.addImage(imageId, {
-                    tl: { col: 1, row: rowNumber - 1 },
-                    ext: { width: 300, height: 300 }
+                    tl: {
+                        col: 1,
+                        row: rowNumber - 1,
+                        colOff: pixelsToEmu(offsetX),
+                        rowOff: pixelsToEmu(offsetY)
+                    },
+                    ext: { width: scaled.width, height: scaled.height }
                 });
                 row.commit();
             }
