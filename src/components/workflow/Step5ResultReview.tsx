@@ -21,8 +21,8 @@ export default function Step5ResultReview() {
     const [lightboxImage, setLightboxImage] = useState<ImageAsset | null>(null);
     const [imageLoading, setImageLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const xlsxPromiseRef = useRef<Promise<void> | null>(null);
-    const xlsxScriptSrc = 'https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js';
+    const excelJsPromiseRef = useRef<Promise<void> | null>(null);
+    const excelJsScriptSrc = 'https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js';
 
     // Handle ESC key to close lightbox
     useEffect(() => {
@@ -188,27 +188,34 @@ Brand: ${state.config.brandName}`;
         toast.success('Session key saved to file');
     };
 
-    const ensureXlsxLoaded = async () => {
+    const ensureExcelJsLoaded = async () => {
         if (typeof window === 'undefined') {
-            throw new Error('XLSX only available in browser.');
+            throw new Error('ExcelJS only available in browser.');
         }
-        if ((window as Window & { XLSX?: unknown }).XLSX) {
+        if ((window as Window & { ExcelJS?: unknown }).ExcelJS) {
             return;
         }
-        if (!xlsxPromiseRef.current) {
-            xlsxPromiseRef.current = new Promise<void>((resolve, reject) => {
+        if (!excelJsPromiseRef.current) {
+            excelJsPromiseRef.current = new Promise<void>((resolve, reject) => {
                 const script = document.createElement('script');
-                script.src = xlsxScriptSrc;
+                script.src = excelJsScriptSrc;
                 script.async = true;
                 script.onload = () => resolve();
-                script.onerror = () => reject(new Error('Failed to load XLSX library.'));
+                script.onerror = () => reject(new Error('Failed to load ExcelJS library.'));
                 document.head.appendChild(script);
             });
         }
-        await xlsxPromiseRef.current;
+        await excelJsPromiseRef.current;
     };
 
-    const getXlsxModule = () => (window as Window & { XLSX?: any }).XLSX;
+    const getExcelJsModule = () => (window as Window & { ExcelJS?: any }).ExcelJS;
+
+    const blobToDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read image data.'));
+        reader.readAsDataURL(blob);
+    });
 
     const handleExportXlsx = async () => {
         const now = new Date();
@@ -216,67 +223,69 @@ Brand: ${state.config.brandName}`;
         const filename = `alt_tag_review_${timestamp}.xlsx`;
 
         try {
-            await ensureXlsxLoaded();
-            const XLSX = getXlsxModule();
-            const rows = [
-                ['Contentstack Asset ID', 'Image URL', 'Suggested Alt', 'Brand Override Alt'],
-                ...activeImages.map((image) => [
-                    image.uid,
-                    '',
-                    image.generatedAltText || '',
-                    ''
-                ])
-            ];
+            await ensureExcelJsLoaded();
+            const ExcelJS = getExcelJsModule();
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Alt Tags');
 
-            const worksheet = XLSX.utils.aoa_to_sheet(rows);
-            const headerCellStyle = {
-                font: { bold: true }
-            };
-            const wrapTextStyle = {
-                alignment: { wrapText: true, vertical: 'top' }
-            };
-            ['A1', 'B1', 'C1', 'D1'].forEach((cellAddress) => {
-                if (worksheet[cellAddress]) {
-                    worksheet[cellAddress].s = headerCellStyle;
-                }
-            });
-            activeImages.forEach((image, index) => {
+            worksheet.columns = [
+                { header: 'Contentstack Asset ID', key: 'id', width: 26 },
+                { header: 'Image URL', key: 'image', width: 43 },
+                { header: 'Suggested Alt', key: 'suggestedAlt', width: 50 },
+                { header: 'Brand Override Alt', key: 'brandAlt', width: 50 }
+            ];
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
+            worksheet.getColumn(4).alignment = { wrapText: true, vertical: 'top' };
+
+            for (const image of activeImages) {
+                worksheet.addRow({
+                    id: image.uid,
+                    image: '',
+                    suggestedAlt: image.generatedAltText || '',
+                    brandAlt: ''
+                });
+            }
+
+            const imageRowHeight = 225;
+            for (let index = 0; index < activeImages.length; index += 1) {
+                const image = activeImages[index];
                 const rowNumber = index + 2;
-                const cellAddress = `B${rowNumber}`;
+                const row = worksheet.getRow(rowNumber);
+                row.height = imageRowHeight;
                 const thumbnailUrl = new URL(image.url);
                 thumbnailUrl.searchParams.set('width', '300');
                 thumbnailUrl.searchParams.set('height', '300');
                 thumbnailUrl.searchParams.set('fit', 'scale-down');
                 thumbnailUrl.searchParams.set('quality', '85');
-                const safeUrl = thumbnailUrl.toString().replace(/"/g, '""');
-                worksheet[cellAddress] = {
-                    t: 'n',
-                    f: `_xlfn.IMAGE("${safeUrl}")`
-                };
-                ['C', 'D'].forEach((column) => {
-                    const altCellAddress = `${column}${rowNumber}`;
-                    if (worksheet[altCellAddress]) {
-                        worksheet[altCellAddress].s = wrapTextStyle;
-                    }
+                const response = await fetch(thumbnailUrl.toString());
+                const blob = await response.blob();
+                const dataUrl = await blobToDataUrl(blob);
+                const extension = blob.type.split('/')[1] || 'png';
+                const imageId = workbook.addImage({
+                    base64: dataUrl,
+                    extension
                 });
-            });
-            worksheet['!cols'] = [
-                { wch: 26 },
-                { wpx: 300 },
-                { wch: 50, s: wrapTextStyle },
-                { wch: 50, s: wrapTextStyle }
-            ];
-            worksheet['!rows'] = [
-                { hpx: 28, s: headerCellStyle },
-                ...activeImages.map(() => ({ hpx: 300 }))
-            ];
+                worksheet.addImage(imageId, {
+                    tl: { col: 1, row: rowNumber - 1 },
+                    ext: { width: 300, height: 300 }
+                });
+                row.commit();
+            }
+            worksheet.getRow(1).height = 21;
 
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Alt Tags');
-            workbook.Workbook = {
-                CalcPr: { fullCalc: true, calcId: 1 }
-            };
-            XLSX.writeFile(workbook, filename, { bookType: 'xlsx', cellStyles: true });
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             toast.success('XLSX exported successfully!');
         } catch (error) {
             toast.error('Failed to export XLSX file.');
@@ -285,42 +294,67 @@ Brand: ${state.config.brandName}`;
 
     const handleImportXlsx = async (file: File) => {
         try {
-            await ensureXlsxLoaded();
-            const XLSX = getXlsxModule();
+            await ensureExcelJsLoaded();
+            const ExcelJS = getExcelJsModule();
             const buffer = await file.arrayBuffer();
-            const workbook = XLSX.read(buffer, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as (string | number | null)[][];
-            if (!rows.length) {
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(buffer);
+            const worksheet = workbook.worksheets[0];
+            if (!worksheet) {
                 toast.error('XLSX file is empty.');
                 return;
             }
 
             const normalizeHeader = (value: string) => value.trim().toLowerCase();
-            const headers = rows[0].map(cell => normalizeHeader(String(cell)));
-            const findColumnIndex = (candidates: string[]) => headers.findIndex(header => candidates.includes(header));
+            const headerRow = worksheet.getRow(1);
+            const headers: string[] = headerRow.values
+                .slice(1)
+                .map((cell: unknown) => normalizeHeader(String(cell ?? '')))
+                .filter(Boolean);
+            const findColumnIndex = (candidates: string[]) => headers.findIndex((header: string) => candidates.includes(header));
             const idIndex = findColumnIndex(['contentstack asset id', 'asset id', 'contentful id', 'image id']);
             const aiIndex = findColumnIndex(['ai suggested alt', 'ai alt', 'suggested alt', 'generated alt']);
-            const overrideIndex = findColumnIndex(['user override alt', 'override alt', 'override', 'user alt']);
+            const overrideIndex = findColumnIndex(['brand override alt', 'user override alt', 'override alt', 'override', 'user alt']);
 
             if (idIndex === -1) {
                 toast.error('Missing "Contentstack Asset ID" column in XLSX.');
                 return;
             }
 
+            const getCellText = (value: any) => {
+                if (value === null || value === undefined) return '';
+                if (typeof value === 'object') {
+                    if (Array.isArray(value.richText)) {
+                        return value.richText.map((item: { text: string }) => item.text).join('');
+                    }
+                    if (value.text) {
+                        return String(value.text);
+                    }
+                    if (value.result !== undefined) {
+                        return String(value.result);
+                    }
+                }
+                return String(value);
+            };
+
             const updates = new Map<string, string>();
-            rows.slice(1).forEach((row) => {
-                const idValue = row[idIndex];
+            worksheet.eachRow((row: unknown, rowNumber: number) => {
+                if (rowNumber === 1) return;
+                const safeRow = row as { getCell: (index: number) => { value: unknown } };
+                const idValue = safeRow.getCell(idIndex + 1).value;
                 if (!idValue) {
                     return;
                 }
-                const assetId = String(idValue).trim();
+                const assetId = getCellText(idValue).trim();
                 if (!assetId) {
                     return;
                 }
-                const overrideValue = overrideIndex !== -1 ? String(row[overrideIndex] ?? '').trim() : '';
-                const aiValue = aiIndex !== -1 ? String(row[aiIndex] ?? '').trim() : '';
+                const overrideValue = overrideIndex !== -1
+                    ? getCellText(safeRow.getCell(overrideIndex + 1).value).trim()
+                    : '';
+                const aiValue = aiIndex !== -1
+                    ? getCellText(safeRow.getCell(aiIndex + 1).value).trim()
+                    : '';
                 if (overrideValue) {
                     updates.set(assetId, overrideValue);
                 } else if (aiValue) {
