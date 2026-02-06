@@ -409,7 +409,9 @@ Brand: ${state.config.brandName}`;
                 const overrideValue = overrideIndex !== -1
                     ? getCellText(safeRow.getCell(overrideIndex + 1).value).trim()
                     : '';
-                if (overrideValue) {
+                if (overrideIndex !== -1 && overrideValue.length === 0) {
+                    updates.set(assetId, '');
+                } else if (overrideValue) {
                     updates.set(assetId, overrideValue);
                 }
             });
