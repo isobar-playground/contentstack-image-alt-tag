@@ -263,11 +263,11 @@ Brand: ${state.config.brandName}`;
             worksheet['!cols'] = [
                 { wch: 26 },
                 { wpx: 300 },
-                { wch: 50 },
-                { wch: 50 }
+                { wch: 50, s: wrapTextStyle },
+                { wch: 50, s: wrapTextStyle }
             ];
             worksheet['!rows'] = [
-                { hpx: 28 },
+                { hpx: 28, s: headerCellStyle },
                 ...activeImages.map(() => ({ hpx: 300 }))
             ];
 
@@ -276,7 +276,7 @@ Brand: ${state.config.brandName}`;
             workbook.Workbook = {
                 CalcPr: { fullCalc: true, calcId: 1 }
             };
-            XLSX.writeFile(workbook, filename, { bookType: 'xlsx' });
+            XLSX.writeFile(workbook, filename, { bookType: 'xlsx', cellStyles: true });
             toast.success('XLSX exported successfully!');
         } catch (error) {
             toast.error('Failed to export XLSX file.');
