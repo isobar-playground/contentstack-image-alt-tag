@@ -219,7 +219,7 @@ Brand: ${state.config.brandName}`;
             await ensureXlsxLoaded();
             const XLSX = getXlsxModule();
             const rows = [
-                ['Contentstack Asset ID', 'Image URL (Formula)', 'AI Suggested Alt', 'User Override Alt'],
+                ['Contentstack Asset ID', 'Image URL', 'Suggested Alt', 'Brand Override Alt'],
                 ...activeImages.map((image) => [
                     image.uid,
                     '',
@@ -229,6 +229,17 @@ Brand: ${state.config.brandName}`;
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(rows);
+            const headerCellStyle = {
+                font: { bold: true }
+            };
+            const wrapTextStyle = {
+                alignment: { wrapText: true, vertical: 'top' }
+            };
+            ['A1', 'B1', 'C1', 'D1'].forEach((cellAddress) => {
+                if (worksheet[cellAddress]) {
+                    worksheet[cellAddress].s = headerCellStyle;
+                }
+            });
             activeImages.forEach((image, index) => {
                 const rowNumber = index + 2;
                 const cellAddress = `B${rowNumber}`;
@@ -242,12 +253,22 @@ Brand: ${state.config.brandName}`;
                     t: 'n',
                     f: `_xlfn.IMAGE("${safeUrl}")`
                 };
+                ['C', 'D'].forEach((column) => {
+                    const altCellAddress = `${column}${rowNumber}`;
+                    if (worksheet[altCellAddress]) {
+                        worksheet[altCellAddress].s = wrapTextStyle;
+                    }
+                });
             });
             worksheet['!cols'] = [
                 { wch: 26 },
-                { wch: 50 },
+                { wpx: 300 },
                 { wch: 50 },
                 { wch: 50 }
+            ];
+            worksheet['!rows'] = [
+                { hpx: 28 },
+                ...activeImages.map(() => ({ hpx: 300 }))
             ];
 
             const workbook = XLSX.utils.book_new();
