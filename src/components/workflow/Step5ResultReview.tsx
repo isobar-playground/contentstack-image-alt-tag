@@ -272,7 +272,26 @@ Brand: ${state.config.brandName}`;
                     id: image.uid,
                     image: '',
                     suggestedAlt: image.generatedAltText || '',
-                    brandAlt: ''
+                    brandAlt: image.generatedAltText || ''
+                });
+            }
+            if (activeImages.length > 0) {
+                worksheet.addConditionalFormatting({
+                    ref: `C2:C${activeImages.length + 1}`,
+                    rules: [
+                        {
+                            type: 'expression',
+                            formulae: ['$C2<>$D2'],
+                            style: {
+                                fill: {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: 'FFFFFFFF' },
+                                    bgColor: { argb: 'FFFFCC80' }
+                                }
+                            }
+                        }
+                    ]
                 });
             }
 
@@ -352,7 +371,6 @@ Brand: ${state.config.brandName}`;
                 .filter(Boolean);
             const findColumnIndex = (candidates: string[]) => headers.findIndex((header: string) => candidates.includes(header));
             const idIndex = findColumnIndex(['contentstack asset id', 'asset id', 'contentful id', 'image id']);
-            const aiIndex = findColumnIndex(['ai suggested alt', 'ai alt', 'suggested alt', 'generated alt']);
             const overrideIndex = findColumnIndex(['brand override alt', 'user override alt', 'override alt', 'override', 'user alt']);
 
             if (idIndex === -1) {
@@ -388,19 +406,11 @@ Brand: ${state.config.brandName}`;
                 if (!assetId) {
                     return;
                 }
-                const overrideRaw = overrideIndex !== -1
-                    ? getCellText(safeRow.getCell(overrideIndex + 1).value)
+                const overrideValue = overrideIndex !== -1
+                    ? getCellText(safeRow.getCell(overrideIndex + 1).value).trim()
                     : '';
-                const overrideValue = overrideRaw.trim();
-                const aiValue = aiIndex !== -1
-                    ? getCellText(safeRow.getCell(aiIndex + 1).value).trim()
-                    : '';
-                if (overrideRaw && overrideValue.length === 0) {
-                    updates.set(assetId, '');
-                } else if (overrideValue) {
+                if (overrideValue) {
                     updates.set(assetId, overrideValue);
-                } else if (aiValue) {
-                    updates.set(assetId, aiValue);
                 }
             });
 
