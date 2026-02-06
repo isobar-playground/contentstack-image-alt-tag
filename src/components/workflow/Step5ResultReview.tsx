@@ -7,10 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Trash2, Download, X, Loader2 } from 'lucide-react';
+import { Trash2, Download, X, Loader2, Upload } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import { ImageAsset } from '@/lib/types';
 import { downloadSessionKey } from '@/lib/sessionKey';
@@ -20,6 +20,9 @@ export default function Step5ResultReview() {
     const confirmDialog = useConfirmDialog();
     const [lightboxImage, setLightboxImage] = useState<ImageAsset | null>(null);
     const [imageLoading, setImageLoading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const xlsxPromiseRef = useRef<Promise<void> | null>(null);
+    const xlsxScriptSrc = 'https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js';
 
     // Handle ESC key to close lightbox
     useEffect(() => {
@@ -185,13 +188,149 @@ Brand: ${state.config.brandName}`;
         toast.success('Session key saved to file');
     };
 
+    const ensureXlsxLoaded = async () => {
+        if (typeof window === 'undefined') {
+            throw new Error('XLSX only available in browser.');
+        }
+        if ((window as Window & { XLSX?: unknown }).XLSX) {
+            return;
+        }
+        if (!xlsxPromiseRef.current) {
+            xlsxPromiseRef.current = new Promise<void>((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = xlsxScriptSrc;
+                script.async = true;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load XLSX library.'));
+                document.head.appendChild(script);
+            });
+        }
+        await xlsxPromiseRef.current;
+    };
+
+    const getXlsxModule = () => (window as Window & { XLSX?: any }).XLSX;
+
+    const handleExportXlsx = async () => {
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15);
+        const filename = `alt_tag_review_${timestamp}.xlsx`;
+
+        try {
+            await ensureXlsxLoaded();
+            const XLSX = getXlsxModule();
+            const rows = [
+                ['Contentstack Asset ID', 'Image URL (Formula)', 'AI Suggested Alt', 'User Override Alt'],
+                ...activeImages.map((image) => [
+                    image.uid,
+                    '',
+                    image.generatedAltText || '',
+                    ''
+                ])
+            ];
+
+            const worksheet = XLSX.utils.aoa_to_sheet(rows);
+            activeImages.forEach((image, index) => {
+                const rowNumber = index + 2;
+                const cellAddress = `B${rowNumber}`;
+                const safeUrl = image.url.replace(/"/g, '""');
+                worksheet[cellAddress] = {
+                    t: 'n',
+                    f: `IMAGE("${safeUrl}")`
+                };
+            });
+            worksheet['!cols'] = [
+                { wch: 26 },
+                { wch: 50 },
+                { wch: 50 },
+                { wch: 50 }
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Alt Tags');
+            XLSX.writeFile(workbook, filename, { bookType: 'xlsx' });
+            toast.success('XLSX exported successfully!');
+        } catch (error) {
+            toast.error('Failed to export XLSX file.');
+        }
+    };
+
+    const handleImportXlsx = async (file: File) => {
+        try {
+            await ensureXlsxLoaded();
+            const XLSX = getXlsxModule();
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(buffer, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(worksheet, { header: 1, defval: '' });
+            if (!rows.length) {
+                toast.error('XLSX file is empty.');
+                return;
+            }
+
+            const normalizeHeader = (value: string) => value.trim().toLowerCase();
+            const headers = rows[0].map(cell => normalizeHeader(String(cell)));
+            const findColumnIndex = (candidates: string[]) => headers.findIndex(header => candidates.includes(header));
+            const idIndex = findColumnIndex(['contentstack asset id', 'asset id', 'contentful id', 'image id']);
+            const aiIndex = findColumnIndex(['ai suggested alt', 'ai alt', 'suggested alt', 'generated alt']);
+            const overrideIndex = findColumnIndex(['user override alt', 'override alt', 'override', 'user alt']);
+
+            if (idIndex === -1) {
+                toast.error('Missing "Contentstack Asset ID" column in XLSX.');
+                return;
+            }
+
+            const updates = new Map<string, string>();
+            rows.slice(1).forEach((row) => {
+                const idValue = row[idIndex];
+                if (!idValue) {
+                    return;
+                }
+                const assetId = String(idValue).trim();
+                if (!assetId) {
+                    return;
+                }
+                const overrideValue = overrideIndex !== -1 ? String(row[overrideIndex] ?? '').trim() : '';
+                const aiValue = aiIndex !== -1 ? String(row[aiIndex] ?? '').trim() : '';
+                if (overrideValue) {
+                    updates.set(assetId, overrideValue);
+                } else if (aiValue) {
+                    updates.set(assetId, aiValue);
+                }
+            });
+
+            if (updates.size === 0) {
+                toast.info('No updates found in XLSX.');
+                return;
+            }
+
+            setState(prev => ({
+                ...prev,
+                images: prev.images.map(img => {
+                    if (updates.has(img.uid)) {
+                        return { ...img, generatedAltText: updates.get(img.uid) };
+                    }
+                    return img;
+                })
+            }));
+
+            toast.success(`Imported updates for ${updates.size} images.`);
+        } catch (error) {
+            toast.error('Failed to import XLSX file.');
+        } finally {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Review Results</CardTitle>
                     <CardDescription>
-                        Review and edit the generated Alt tags. Click &quot;Delete&quot; to skip an image.
+                        Review and edit the generated Alt tags. Click &quot;Delete&quot; to skip an image. You can export or import an XLSX file to review edits in Excel.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -284,6 +423,22 @@ Brand: ${state.config.brandName}`;
                     </Button>
                     <Button
                         variant="outline"
+                        onClick={handleExportXlsx}
+                        className="flex-1"
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export XLSX
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1"
+                    >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import XLSX
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={handleExportHtml}
                         className="flex-1"
                     >
@@ -296,6 +451,18 @@ Brand: ${state.config.brandName}`;
                     >
                         Proceed to Update Contentstack ({activeImages.length} images)
                     </Button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx"
+                        className="hidden"
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                                handleImportXlsx(file);
+                            }
+                        }}
+                    />
                 </CardFooter>
             </Card>
 
