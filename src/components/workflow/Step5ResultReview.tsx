@@ -7,10 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Trash2, Download, X, Loader2 } from 'lucide-react';
+import { Trash2, Download, X, Loader2, Upload } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import { ImageAsset } from '@/lib/types';
 import { downloadSessionKey } from '@/lib/sessionKey';
@@ -20,6 +20,9 @@ export default function Step5ResultReview() {
     const confirmDialog = useConfirmDialog();
     const [lightboxImage, setLightboxImage] = useState<ImageAsset | null>(null);
     const [imageLoading, setImageLoading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const excelJsPromiseRef = useRef<Promise<void> | null>(null);
+    const excelJsScriptSrc = 'https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js';
 
     // Handle ESC key to close lightbox
     useEffect(() => {
@@ -185,13 +188,266 @@ Brand: ${state.config.brandName}`;
         toast.success('Session key saved to file');
     };
 
+    const ensureExcelJsLoaded = async () => {
+        if (typeof window === 'undefined') {
+            throw new Error('ExcelJS only available in browser.');
+        }
+        if ((window as Window & { ExcelJS?: unknown }).ExcelJS) {
+            return;
+        }
+        if (!excelJsPromiseRef.current) {
+            excelJsPromiseRef.current = new Promise<void>((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = excelJsScriptSrc;
+                script.async = true;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load ExcelJS library.'));
+                document.head.appendChild(script);
+            });
+        }
+        await excelJsPromiseRef.current;
+    };
+
+    const getExcelJsModule = () => (window as Window & { ExcelJS?: any }).ExcelJS;
+
+    const blobToDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read image data.'));
+        reader.readAsDataURL(blob);
+    });
+
+    const handleExportXlsx = async () => {
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[-:.]/g, '').slice(0, 15);
+        const filename = `alt_tag_review_${timestamp}.xlsx`;
+
+        try {
+            await ensureExcelJsLoaded();
+            const ExcelJS = getExcelJsModule();
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Alt Tags');
+
+            worksheet.columns = [
+                { header: 'Contentstack Asset ID', key: 'id', width: 26 },
+                { header: 'Image URL', key: 'image', width: 43 },
+                { header: 'Suggested Alt', key: 'suggestedAlt', width: 50 },
+                { header: 'Brand Override Alt', key: 'brandAlt', width: 50 }
+            ];
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
+            worksheet.getColumn(4).alignment = { wrapText: true, vertical: 'top' };
+
+            const createScaledImage = async (src: string, maxSize: number) => {
+                const img = new globalThis.Image();
+                const loaded = new Promise<void>((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Failed to load image'));
+                });
+                img.src = src;
+                await loaded;
+                const width = img.naturalWidth || img.width;
+                const height = img.naturalHeight || img.height;
+                if (!width || !height) {
+                    return { dataUrl: src, width: maxSize, height: maxSize };
+                }
+                const scale = Math.min(1, maxSize / Math.max(width, height));
+                const targetWidth = Math.max(1, Math.round(width * scale));
+                const targetHeight = Math.max(1, Math.round(height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    return { dataUrl: src, width: targetWidth, height: targetHeight };
+                }
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                return { dataUrl: canvas.toDataURL('image/png'), width: targetWidth, height: targetHeight };
+            };
+            const columnWidthToPixels = (width: number) => Math.floor(width * 7 + 5);
+            const pixelsToEmu = (value: number) => Math.round(value * 9525);
+
+            for (const image of activeImages) {
+                worksheet.addRow({
+                    id: image.uid,
+                    image: '',
+                    suggestedAlt: image.generatedAltText || '',
+                    brandAlt: image.generatedAltText || ''
+                });
+            }
+            if (activeImages.length > 0) {
+                worksheet.addConditionalFormatting({
+                    ref: `C2:C${activeImages.length + 1}`,
+                    rules: [
+                        {
+                            type: 'expression',
+                            formulae: ['$C2<>$D2'],
+                            style: {
+                                fill: {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: 'FFFFFFFF' },
+                                    bgColor: { argb: 'FFFFCC80' }
+                                }
+                            }
+                        }
+                    ]
+                });
+            }
+
+            const imageRowHeight = 225;
+            for (let index = 0; index < activeImages.length; index += 1) {
+                const image = activeImages[index];
+                const rowNumber = index + 2;
+                const row = worksheet.getRow(rowNumber);
+                row.height = imageRowHeight;
+                const thumbnailUrl = new URL(image.url);
+                thumbnailUrl.searchParams.set('width', '300');
+                thumbnailUrl.searchParams.delete('height');
+                thumbnailUrl.searchParams.delete('fit');
+                thumbnailUrl.searchParams.set('quality', '85');
+                const response = await fetch(thumbnailUrl.toString());
+                const blob = await response.blob();
+                const dataUrl = await blobToDataUrl(blob);
+                const scaled = await createScaledImage(dataUrl, 300);
+                const extension = 'png';
+                const imageId = workbook.addImage({
+                    base64: scaled.dataUrl,
+                    extension
+                });
+                const imageCellWidth = columnWidthToPixels(worksheet.getColumn(2).width ?? 43);
+                const imageCellHeight = 300;
+                const offsetX = Math.max(0, Math.floor((imageCellWidth - scaled.width) / 2));
+                const offsetY = Math.max(0, Math.floor((imageCellHeight - scaled.height) / 2));
+                worksheet.addImage(imageId, {
+                    tl: {
+                        col: 1,
+                        row: rowNumber - 1,
+                        colOff: pixelsToEmu(offsetX),
+                        rowOff: pixelsToEmu(offsetY)
+                    },
+                    ext: { width: scaled.width, height: scaled.height }
+                });
+                row.commit();
+            }
+            worksheet.getRow(1).height = 21;
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.success('XLSX exported successfully!');
+        } catch (error) {
+            toast.error('Failed to export XLSX file.');
+        }
+    };
+
+    const handleImportXlsx = async (file: File) => {
+        try {
+            await ensureExcelJsLoaded();
+            const ExcelJS = getExcelJsModule();
+            const buffer = await file.arrayBuffer();
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(buffer);
+            const worksheet = workbook.worksheets[0];
+            if (!worksheet) {
+                toast.error('XLSX file is empty.');
+                return;
+            }
+
+            const normalizeHeader = (value: string) => value.trim().toLowerCase();
+            const headerRow = worksheet.getRow(1);
+            const headers: string[] = headerRow.values
+                .slice(1)
+                .map((cell: unknown) => normalizeHeader(String(cell ?? '')))
+                .filter(Boolean);
+            const findColumnIndex = (candidates: string[]) => headers.findIndex((header: string) => candidates.includes(header));
+            const idIndex = findColumnIndex(['contentstack asset id', 'asset id', 'contentful id', 'image id']);
+            const overrideIndex = findColumnIndex(['brand override alt', 'user override alt', 'override alt', 'override', 'user alt']);
+
+            if (idIndex === -1) {
+                toast.error('Missing "Contentstack Asset ID" column in XLSX.');
+                return;
+            }
+
+            const getCellText = (value: any) => {
+                if (value === null || value === undefined) return '';
+                if (typeof value === 'object') {
+                    if (Array.isArray(value.richText)) {
+                        return value.richText.map((item: { text: string }) => item.text).join('');
+                    }
+                    if (value.text) {
+                        return String(value.text);
+                    }
+                    if (value.result !== undefined) {
+                        return String(value.result);
+                    }
+                }
+                return String(value);
+            };
+
+            const updates = new Map<string, string>();
+            worksheet.eachRow((row: unknown, rowNumber: number) => {
+                if (rowNumber === 1) return;
+                const safeRow = row as { getCell: (index: number) => { value: unknown } };
+                const idValue = safeRow.getCell(idIndex + 1).value;
+                if (!idValue) {
+                    return;
+                }
+                const assetId = getCellText(idValue).trim();
+                if (!assetId) {
+                    return;
+                }
+                const overrideValue = overrideIndex !== -1
+                    ? getCellText(safeRow.getCell(overrideIndex + 1).value).trim()
+                    : '';
+                if (overrideIndex !== -1 && overrideValue.length === 0) {
+                    updates.set(assetId, '');
+                } else if (overrideValue) {
+                    updates.set(assetId, overrideValue);
+                }
+            });
+
+            if (updates.size === 0) {
+                toast.info('No updates found in XLSX.');
+                return;
+            }
+
+            setState(prev => ({
+                ...prev,
+                images: prev.images.map(img => {
+                    if (updates.has(img.uid)) {
+                        return { ...img, generatedAltText: updates.get(img.uid) };
+                    }
+                    return img;
+                })
+            }));
+
+            toast.success(`Imported updates for ${updates.size} images.`);
+        } catch (error) {
+            toast.error('Failed to import XLSX file.');
+        } finally {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Review Results</CardTitle>
                     <CardDescription>
-                        Review and edit the generated Alt tags. Click &quot;Delete&quot; to skip an image.
+                        Review and edit the generated Alt tags. Click &quot;Delete&quot; to skip an image. You can export or import an XLSX file to review edits in Excel.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -284,6 +540,22 @@ Brand: ${state.config.brandName}`;
                     </Button>
                     <Button
                         variant="outline"
+                        onClick={handleExportXlsx}
+                        className="flex-1"
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export XLSX
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1"
+                    >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import XLSX
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={handleExportHtml}
                         className="flex-1"
                     >
@@ -296,6 +568,18 @@ Brand: ${state.config.brandName}`;
                     >
                         Proceed to Update Contentstack ({activeImages.length} images)
                     </Button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx"
+                        className="hidden"
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) {
+                                handleImportXlsx(file);
+                            }
+                        }}
+                    />
                 </CardFooter>
             </Card>
 
