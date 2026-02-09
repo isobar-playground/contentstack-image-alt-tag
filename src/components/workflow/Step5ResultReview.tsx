@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Trash2, Download, X, Loader2, Upload } from 'lucide-react';
@@ -20,8 +21,15 @@ export default function Step5ResultReview() {
     const confirmDialog = useConfirmDialog();
     const [lightboxImage, setLightboxImage] = useState<ImageAsset | null>(null);
     const [imageLoading, setImageLoading] = useState(false);
+    const [xlsxExportState, setXlsxExportState] = useState({
+        isExporting: false,
+        current: 0,
+        total: 0,
+        stage: ''
+    });
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const excelJsPromiseRef = useRef<Promise<void> | null>(null);
+    const exportToastIdRef = useRef<string | number | null>(null);
     const excelJsScriptSrc = 'https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js';
 
     // Handle ESC key to close lightbox
@@ -223,8 +231,28 @@ Brand: ${state.config.brandName}`;
         const filename = `alt_tag_review_${timestamp}.xlsx`;
 
         try {
+            const totalImages = activeImages.length;
+            setXlsxExportState({
+                isExporting: true,
+                current: 0,
+                total: totalImages,
+                stage: 'Loading ExcelJS...'
+            });
+            exportToastIdRef.current = toast.loading('Generating XLSX file...', {
+                description: totalImages > 0 ? `Preparing workbook (0/${totalImages})` : 'Preparing workbook'
+            });
             await ensureExcelJsLoaded();
             const ExcelJS = getExcelJsModule();
+            setXlsxExportState(prev => ({
+                ...prev,
+                stage: 'Building worksheet...'
+            }));
+            if (exportToastIdRef.current) {
+                toast.loading('Generating XLSX file...', {
+                    id: exportToastIdRef.current,
+                    description: totalImages > 0 ? `Building worksheet (0/${totalImages})` : 'Building worksheet'
+                });
+            }
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('Alt Tags');
 
@@ -297,6 +325,17 @@ Brand: ${state.config.brandName}`;
 
             const imageRowHeight = 225;
             for (let index = 0; index < activeImages.length; index += 1) {
+                setXlsxExportState(prev => ({
+                    ...prev,
+                    current: index + 1,
+                    stage: `Embedding image ${index + 1} of ${activeImages.length}`
+                }));
+                if (exportToastIdRef.current) {
+                    toast.loading('Generating XLSX file...', {
+                        id: exportToastIdRef.current,
+                        description: `Embedding image ${index + 1} of ${activeImages.length}`
+                    });
+                }
                 const image = activeImages[index];
                 const rowNumber = index + 2;
                 const row = worksheet.getRow(rowNumber);
@@ -344,9 +383,25 @@ Brand: ${state.config.brandName}`;
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            toast.success('XLSX exported successfully!');
+            if (exportToastIdRef.current) {
+                toast.success('XLSX exported successfully!', { id: exportToastIdRef.current });
+            } else {
+                toast.success('XLSX exported successfully!');
+            }
         } catch (error) {
-            toast.error('Failed to export XLSX file.');
+            if (exportToastIdRef.current) {
+                toast.error('Failed to export XLSX file.', { id: exportToastIdRef.current });
+            } else {
+                toast.error('Failed to export XLSX file.');
+            }
+        } finally {
+            exportToastIdRef.current = null;
+            setXlsxExportState({
+                isExporting: false,
+                current: 0,
+                total: 0,
+                stage: ''
+            });
         }
     };
 
@@ -456,6 +511,25 @@ Brand: ${state.config.brandName}`;
                             Images to update: {activeImages.length}
                         </div>
                     </div>
+                    {xlsxExportState.isExporting && (
+                        <div className="mb-4 rounded-md border bg-muted/30 p-3">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>{xlsxExportState.stage || 'Generating XLSX...'}</span>
+                                {xlsxExportState.total > 0 && (
+                                    <span className="ml-auto text-xs">
+                                        {xlsxExportState.current}/{xlsxExportState.total}
+                                    </span>
+                                )}
+                            </div>
+                            <Progress
+                                value={xlsxExportState.total > 0
+                                    ? (xlsxExportState.current / xlsxExportState.total) * 100
+                                    : 0}
+                                className="mt-2"
+                            />
+                        </div>
+                    )}
 
                     <ScrollArea className="h-[600px] w-full rounded-md border p-4 bg-card">
                         {activeImages.length === 0 ? (
@@ -542,6 +616,7 @@ Brand: ${state.config.brandName}`;
                         variant="outline"
                         onClick={handleExportXlsx}
                         className="flex-1"
+                        disabled={xlsxExportState.isExporting}
                     >
                         <Download className="mr-2 h-4 w-4" />
                         Export XLSX
