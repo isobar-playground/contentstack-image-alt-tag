@@ -37,7 +37,8 @@ If the image passed the checks (is NOT excluded), follow this priority order:
     *   **CASE CONVERSION (MANDATORY):** Transcribe all visible text (Brand, Name, Slogans) using standard sentence case or title case. **STRICTLY DO NOT USE ALL CAPS (CAPSLOCK)**, even if the source image uses it.
     *   **Text ON the product:** Transcribe ONLY the Brand, Product Name, and Shade. IGNORE fine print/ingredients.
     *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
-    *   **Dense copy rule:** If packaging contains long descriptive paragraphs (e.g., story text on box sides/back), do NOT transcribe full sentences; keep only a short headline-level phrase or omit entirely when not essential.
+    *   **Dense copy rule (STRICT):** If packaging contains long descriptive paragraphs (e.g., story text on box sides/back), do NOT transcribe full sentences. Keep at most one short headline fragment (max 6 words) or omit entirely when not essential.
+    *   **Too-much-text override:** If most readable text is small, dense paragraph copy (common on box backs/sides), skip the text block and describe only the general product context.
     *   **Tiny/back-of-pack text rule:** If text appears in very small font, low prominence, multilingual fine print, or only readable by zoom-level inspection, IGNORE it.
     *   **CTA rule:** IGNORE button-like or promotional CTA strings such as "Discover now", "Shop now", "Learn more", even if they appear inside the image.
     *   **Text-only layout rule:** If the image is primarily a text banner/graphic with a long copy block, output only the meaningful readable text as the alt text (without scene description).
@@ -49,5 +50,5 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 4.  **FINAL ASSEMBLY:**
     *   Preferred structure: [Object] + [Visual Context] + optional "Text: [Layout Text/Headline]".
-    *   Use the optional "Text:" section only when it adds new meaningful context. If it repeats product/brand terms already mentioned in [Object] or [Visual Context], omit repeated words; if fully redundant, omit the entire "Text:" section. For long copy, include only a concise headline fragment (not full paragraph text).
+    *   Use the optional "Text:" section only when it adds new meaningful context. If it repeats product/brand terms already mentioned in [Object] or [Visual Context], omit repeated words; if fully redundant, omit the entire "Text:" section. Never include full paragraph text; keep "Text:" to one short phrase only.
     *   Keep it concise (under 150 chars preferred).`
