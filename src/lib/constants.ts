@@ -47,8 +47,6 @@ If the image passed the checks (is NOT excluded), follow this priority order:
     *   If describing a model/swatch, focus solely on the cosmetic attribute (e.g., "glossy finish", "volumized lashes").
 
 4.  **FINAL ASSEMBLY:**
-    *   Preferred structure: [Object] + [Visual Context] + optional [Unique nearby text].
-    *   Do NOT add a literal prefix like "Text:" in the final alt output.
-    *   If nearby text repeats already mentioned product/brand terms, omit it entirely.
-    *   If nearby text is only partially new, keep only the new meaningful words once (no duplication).
+    *   Preferred structure: [Object] + [Visual Context] + optional "Text: [Layout Text/Headline]".
+    *   Use the optional "Text:" section only when it adds NEW meaningful context. If it repeats product/brand terms already mentioned, omit repeated words; if fully redundant, omit the entire "Text:" section.
     *   Keep it concise (under 150 chars preferred).`
