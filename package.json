@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate-alt": "node scripts/generate-alt.mjs"
   },
   "dependencies": {
     "@contentstack/management": "^1.25.1",
