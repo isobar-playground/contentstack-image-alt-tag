@@ -238,7 +238,6 @@ export default function Step4BatchProcessing() {
                             ]
                         },
                     ],
-                    max_tokens: 150,
                     temperature: 0.7,
                 },
             };
