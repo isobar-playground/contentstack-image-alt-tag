@@ -48,5 +48,5 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 4.  **FINAL ASSEMBLY:**
     *   Preferred structure: [Object] + [Visual Context] + optional "Text: [Layout Text/Headline]".
-    *   Use the optional "Text:" section only when it adds NEW meaningful context. If it repeats product/brand terms already mentioned, omit repeated words; if fully redundant, omit the entire "Text:" section.
+    *   Use the optional "Text:" section only when it adds new meaningful context. If it repeats product/brand terms already mentioned in [Object] or [Visual Context], omit repeated words; if fully redundant, omit the entire "Text:" section.
     *   Keep it concise (under 150 chars preferred).`
