@@ -16,6 +16,7 @@ import { Loader2, AlertTriangle, FileText, RefreshCw } from 'lucide-react';
 import { BatchInfo } from '@/lib/types';
 
 import { OPENAI_MODELS, calculateImageTokens, estimateCost } from '@/lib/openai';
+import { DEFAULT_MASTER_PROMPT } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import '@mdxeditor/editor/style.css';
 import '../../mdxeditor-custom.css';
@@ -237,7 +238,6 @@ export default function Step4BatchProcessing() {
                             ]
                         },
                     ],
-                    max_tokens: 150,
                     temperature: 0.7,
                 },
             };
@@ -404,6 +404,15 @@ export default function Step4BatchProcessing() {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-semibold text-lg">Master Prompt</h3>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setMasterPrompt(DEFAULT_MASTER_PROMPT)}
+                                        disabled={masterPrompt === DEFAULT_MASTER_PROMPT}
+                                    >
+                                        Reset to default
+                                    </Button>
                                 </div>
                                 <div className="border rounded-md overflow-hidden" key={masterPrompt.substring(0, 50)}>
                                     <MDXEditor markdown={masterPrompt} onChange={setMasterPrompt} />

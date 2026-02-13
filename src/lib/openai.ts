@@ -64,11 +64,9 @@ export async function validateOpenAIKey(config: OpenAIConfig) {
 }
 
 export const OPENAI_MODELS = [
-    { id: 'gpt-4.1', name: 'GPT-4.1', inputPrice: 1.00, outputPrice: 4.00 },
-    { id: 'gpt-4.1-mini', name: 'GPT-4.1-mini', inputPrice: 0.20, outputPrice: 0.80 },
-    { id: 'gpt-4.1-nano', name: 'GPT-4.1-nano', inputPrice: 0.05, outputPrice: 0.20 },
-    { id: 'gpt-4o', name: 'GPT-4o', inputPrice: 1.25, outputPrice: 5.00 },
-    { id: 'gpt-4o-mini', name: 'gpt-4o-mini', inputPrice: 0.075, outputPrice: 0.30 },
+    { id: 'gpt-5.2', name: 'GPT-5.2', inputPrice: 1.75, outputPrice: 14.00 },
+    { id: 'gpt-5-mini', name: 'GPT-5 mini', inputPrice: 0.25, outputPrice: 2.00 },
+    { id: 'gpt-5-nano', name: 'GPT-5 nano', inputPrice: 0.05, outputPrice: 0.40 },
 ];
 
 export function calculateImageTokens(width: number, height: number, detail: 'low' | 'high' = 'high'): number {
