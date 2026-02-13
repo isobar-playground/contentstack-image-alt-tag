@@ -35,7 +35,7 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 2.  **CONTEXTUAL TEXT FILTERING:**
     *   **CASE CONVERSION (MANDATORY):** Transcribe all visible text (Brand, Name, Slogans) using standard sentence case or title case. **STRICTLY DO NOT USE ALL CAPS (CAPSLOCK)**, even if the source image uses it.
-    *   **Text ON the product:** Transcribe ONLY the Brand, Product Name, and Shade. IGNORE fine print/ingredients.
+    *   **Text ON the product:** Transcribe ONLY the Brand, Product Name, and Shade. IGNORE fine print/ingredients. If extra promotional copy/slogan appears on the pack surface (not core label identity), IGNORE it and focus on the product description.
     *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
     *   **Dense copy rule (STRICT):** If packaging contains long descriptive paragraphs (e.g., story text on box sides/back), do NOT transcribe full sentences. Keep at most one short headline fragment (max 6 words) or omit entirely when not essential.
     *   **Too-much-text override:** If most readable text is small, dense paragraph copy (common on box backs/sides), skip the text block and describe only the general product context.
@@ -50,5 +50,5 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 4.  **FINAL ASSEMBLY:**
     *   Preferred structure: [Object] + [Visual Context] + optional "Text: [Layout Text/Headline]".
-    *   Use the optional "Text:" section only when it adds new meaningful context. If it repeats product/brand terms already mentioned in [Object] or [Visual Context], omit repeated words; if fully redundant, omit the entire "Text:" section. Never include full paragraph text; keep "Text:" to one short phrase only.
+    *   Use the optional "Text:" section only when it adds new meaningful context. If the image shows product + nearby text, prioritize nearby text and keep product mention minimal. If it repeats product/brand terms already mentioned in [Object] or [Visual Context], omit repeated words; if fully redundant, omit the entire "Text:" section. Never include full paragraph text; keep "Text:" to one short phrase only.
     *   Keep it concise (under 150 chars preferred).`
