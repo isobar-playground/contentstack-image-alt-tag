@@ -37,6 +37,9 @@ If the image passed the checks (is NOT excluded), follow this priority order:
     *   **CASE CONVERSION (MANDATORY):** Transcribe all visible text (Brand, Name, Slogans) using standard sentence case or title case. **STRICTLY DO NOT USE ALL CAPS (CAPSLOCK)**, even if the source image uses it.
     *   **Text ON the product:** Transcribe ONLY the Brand, Product Name, and Shade. IGNORE fine print/ingredients.
     *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
+    *   **Tiny text rule:** If text appears in very small font, low prominence, or only readable by zoom-level inspection, IGNORE it.
+    *   **CTA rule:** IGNORE button-like or promotional CTA strings such as "Discover now", "Shop now", "Learn more", even if they appear inside the image.
+    *   **Text-only layout rule:** If the image is primarily a text banner/graphic with a long copy block, output only the meaningful readable text as the alt text (without adding "Text:" and without extra scene description).
 
 3.  **VISUAL SUPPORT:**
     *   **AVOID REDUNDANCY:** Do NOT repeat information (e.g., color) and do NOT describe obvious shapes (e.g., "rectangular box") if the object type is already defined.
@@ -46,4 +49,5 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 4.  **FINAL ASSEMBLY:**
     *   Combine: [Object] + [Visual Context] + "Text: [Layout Text/Headline]".
     *   If the product text merely repeats the same words already captured in [Visual Context] (e.g., identical product name), omit the "Text: [Layout Text/Headline]" section entirely.
+    *   If any "Text:" segment duplicates already mentioned product/brand terms, remove duplicates and keep only new, meaningful text.
     *   Keep it concise (under 150 chars preferred).`
