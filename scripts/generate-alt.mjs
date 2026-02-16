@@ -7,9 +7,9 @@ import OpenAI from 'openai';
 const { client: contentstackClient } = contentstackManagementPkg;
 
 const MODEL_PRICING_PER_MTOK = {
-  'gpt-5.2': { input: 1.75, output: 14.0 },
-  'gpt-5-mini': { input: 0.25, output: 2.0 },
-  'gpt-5-nano': { input: 0.05, output: 0.4 },
+  'gpt-4.1': { input: 1.0, output: 4.0 },
+  'gpt-4.1-mini': { input: 0.2, output: 0.8 },
+  'gpt-4.1-nano': { input: 0.05, output: 0.2 },
 };
 
 function getPricing(modelId) {
