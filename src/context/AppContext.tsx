@@ -23,7 +23,7 @@ const defaultState: AppState = {
         contentstackManagementToken: '',
         contentstackEnvironment: '',
         openaiApiKey: '',
-        openaiModel: 'gpt-5-mini',
+        openaiModel: 'gpt-4.1',
         brandName: '',
         masterPrompt: DEFAULT_MASTER_PROMPT,
     },
