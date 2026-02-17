@@ -31,14 +31,14 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 1.  **DEFINE THE OBJECT:**
     *   Start with the specific product type, body part (for swatches), or subject.
-    *   *Examples:* "Origen Yucatan Midnight Amber body mist bottle...", "Hand showing red nail polish..."
 
 2.  **CONTEXTUAL TEXT FILTERING:**
     *   **CASE CONVERSION (MANDATORY):** Transcribe all visible text (Brand, Name, Slogans) using standard sentence case or title case. **STRICTLY DO NOT USE ALL CAPS (CAPSLOCK)**, even if the source image uses it.
     *   **Text ON the product (HARD RULE):** Transcribe ONLY the Brand, Product Name, and Shade from the main product-name label. IGNORE all other on-pack copy (descriptions, claims, slogans, campaign lines, legal text, ingredients), even if readable.
     *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
-    *   **Dense copy rule (STRICT):** If packaging contains long descriptive paragraphs (e.g., story text on box sides/back), do NOT transcribe full sentences. Keep at most one short headline fragment (max 6 words) or omit entirely when not essential.
-    *   **Too-much-text override:** If most readable text is small, dense paragraph copy (common on box backs/sides), skip the text block and describe only the general product context.
+    *   **Text-priority override (HARD RULE):** If the image contains substantial readable text, focus on transcribing only the meaningful text and keep visual/object wording minimal.
+    *   **Dense copy rule (STRICT):** If packaging contains long descriptive paragraphs (e.g., story text on box sides/back), summarize only the most meaningful text in a short phrase.
+    *   **Too-much-text override (HARD RULE):** If the image contains a lot of readable text, ALT should focus on that text (concise summary) instead of visual scene details.
     *   **Tiny/back-of-pack text rule:** If text appears in very small font, low prominence, multilingual fine print, or only readable by zoom-level inspection, IGNORE it.
     *   **Small-fragment-in-copy rule (HARD RULE):** If a short readable text fragment is part of a longer description, advertisement line, or slogan block (and not the product name label), IGNORE it completely.
     *   **CTA rule:** IGNORE button-like or promotional CTA strings such as "Discover now", "Shop now", "Learn more", even if they appear inside the image.
@@ -50,7 +50,8 @@ If the image passed the checks (is NOT excluded), follow this priority order:
     *   If describing a model/swatch, focus solely on the cosmetic attribute (e.g., "glossy finish", "volumized lashes").
 
 4.  **FINAL ASSEMBLY:**
-    *   Preferred structure: [Object] + [Visual Context] + optional "Text: [Layout Text/Headline]".
-    *   Use the optional "Text:" section only when it adds new meaningful context. If the image shows product + nearby text, prioritize nearby text and keep product mention minimal. If it repeats product/brand terms already mentioned in [Object] or [Visual Context], omit repeated words; if fully redundant, omit the entire "Text:" section. Never include full paragraph text; keep "Text:" to one short phrase only.
-    *   Keep it concise (under 150 chars preferred).
+    *   Preferred structure: [Object] + [Visual Context] + optional [Layout Text/Headline] (without any prefix).
+    *   Never start the text block with "Text:". Write readable text directly (example: "Step into the lush, fresh world of the Amazon. Illustration by Naima Almeida - Brazil.").
+    *   If the image shows product + nearby text, prioritize nearby text and keep product mention minimal. If it repeats product/brand terms already mentioned, remove repeated words; if fully redundant, omit the repeated part entirely.
+    *   Keep the final ALT text at 150 characters max.
 `
