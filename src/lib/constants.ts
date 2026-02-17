@@ -24,6 +24,8 @@ If Step 1 was "NO", return strictly nothing (an empty response). Do NOT output q
 *   **Unknown/Corrupted:**
     *   The content is too dark, corrupted, or visually ambiguous to identify with certainty.
 
+*   **Product-packshot exception (HARD RULE):** If a clearly visible product is present (even on a plain background, and even if only back/side label text is visible), DO NOT exclude the image. Proceed to Step 3.
+
 *   **Action:** If the image matches the exclusion criteria -> Output strictly nothing. Do NOT print "" or any other characters.
 
 **STEP 3: GENERATION RULES (STRICT LOGIC)**
@@ -31,11 +33,13 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 1.  **DEFINE THE OBJECT:**
     *   Start with the specific product type, body part (for swatches), or subject.
+    *   **Pack orientation fallback (HARD RULE):** If the main front label is not visible/readable (e.g., back or side of packaging), still generate ALT using object + orientation (e.g., "back view of hair and body mist bottle with barcode"). Do NOT return empty.
 
 2.  **CONTEXTUAL TEXT FILTERING:**
     *   **CASE CONVERSION (MANDATORY):** Transcribe all visible text (Brand, Name, Slogans) using standard sentence case or title case. **STRICTLY DO NOT USE ALL CAPS (CAPSLOCK)**, even if the source image uses it.
     *   **Text ON the product (HARD RULE):** Transcribe ONLY the Brand, Product Name, and Shade from the main product-name label. IGNORE all other on-pack copy (descriptions, claims, slogans, campaign lines, legal text, ingredients), even if readable.
-    *   **Text NEXT TO the product:** If there is a layout with headlines or bullet points, INCLUDE them (summarize if very long).
+    *   **Text NEXT TO the product:** If there is a layout with headlines, body copy, or bullet points, INCLUDE all meaningful nearby text.
+    *   **Campaign-copy priority (HARD RULE):** When nearby marketing copy is the main message (headline + paragraph + bullets), prioritize transcribing that full message and minimize or omit product-name mention if needed.
     *   **Text-priority override (HARD RULE):** If the image contains substantial readable text, focus on transcribing only the meaningful text and keep visual/object wording minimal.
     *   **Dense copy rule (STRICT):** If packaging contains long descriptive paragraphs (e.g., story text on box sides/back), summarize only the most meaningful text in a short phrase.
     *   **Too-much-text override (HARD RULE):** If the image contains a lot of readable text, ALT should focus on that text (concise summary) instead of visual scene details.
@@ -51,7 +55,12 @@ If the image passed the checks (is NOT excluded), follow this priority order:
 
 4.  **FINAL ASSEMBLY:**
     *   Preferred structure: [Object] + [Visual Context] + optional [Layout Text/Headline] (without any prefix).
-    *   Never start the text block with "Text:". Write readable text directly (example: "Step into the lush, fresh world of the Amazon. Illustration by Naima Almeida - Brazil.").
+    *   **DE-DUPLICATION (HARD RULE):** Before finalizing, remove repeated words/phrases (especially Brand, Product Name, Shade, and product type). If a term appears once, do not repeat it again in another segment.
+    *   **NEAR-DUPLICATE MERGE:** If two segments express the same meaning with minor wording differences (e.g., "hair and body mist" vs "fragrance hair & body mist"), keep only one concise version.
+    *   **FORBIDDEN PREFIX (HARD RULE):** Never start the ALT with labels such as "Text:", "Text -", "Alt:", "Caption:", or any equivalent prefix. Output only the final ALT sentence.
+    *   **OUTPUT FORMAT CHECK (MANDATORY):** Before returning, verify the first word is content (brand/product/scene text), not a meta label. If a label appears at the start, remove it.
+    *   Never start the text block with "Text:". Write readable text directly (correct: "Step into the lush, fresh world of the Amazon. Illustration by Naima Almeida - Brazil.").
     *   If the image shows product + nearby text, prioritize nearby text and keep product mention minimal. If it repeats product/brand terms already mentioned, remove repeated words; if fully redundant, omit the repeated part entirely.
-    *   Keep the final ALT text at 150 characters max.
+    *   **Text-completeness override (HARD RULE):** For text-led creatives (headline + paragraph + bullets), preserve the full meaningful copy even if this requires omitting product naming details.
+    *   Keep the final ALT text concise, but if preserving meaningful nearby text requires more length, allow up to 300 characters rather than truncating key copy.
 `
