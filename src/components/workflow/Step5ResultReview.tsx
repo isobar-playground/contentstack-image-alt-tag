@@ -209,6 +209,7 @@ Brand: ${state.config.brandName}`;
         await excelJsPromiseRef.current;
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getExcelJsModule = () => (window as Window & { ExcelJS?: any }).ExcelJS;
 
     const blobToDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
@@ -349,7 +350,7 @@ Brand: ${state.config.brandName}`;
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             toast.success('XLSX exported successfully!');
-        } catch (error) {
+        } catch {
             toast.error('Failed to export XLSX file.');
         }
     };
@@ -382,6 +383,7 @@ Brand: ${state.config.brandName}`;
                 return;
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const getCellText = (value: any) => {
                 if (value === null || value === undefined) return '';
                 if (typeof value === 'object') {
@@ -436,7 +438,7 @@ Brand: ${state.config.brandName}`;
             }));
 
             toast.success(`Imported updates for ${updates.size} images.`);
-        } catch (error) {
+        } catch {
             toast.error('Failed to import XLSX file.');
         } finally {
             if (fileInputRef.current) {
