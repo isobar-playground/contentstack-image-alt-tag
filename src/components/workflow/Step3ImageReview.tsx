@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { ImageAsset, ImageUsage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -283,6 +283,7 @@ export default function Step3ImageReview() {
                                                         const allActiveInGroup = images.every(img => img.status === 'active');
                                                         const someActiveInGroup = images.some(img => img.status === 'active');
                                                         const activeInGroup = images.filter(img => img.status === 'active').length;
+                                                        const groupEntryUrl = images[0]?.usages?.[0]?.entryUrl;
 
                                                         return (
                                                             <AccordionItem key={usageKey} value={usageKey} className="bg-muted border rounded">
@@ -310,7 +311,21 @@ export default function Step3ImageReview() {
                                                                                 </span>
                                                                             </Button>
                                                                             <div className="text-left">
-                                                                                <div className="text-sm font-medium">{usageKey}</div>
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <span className="text-sm font-medium">{usageKey}</span>
+                                                                                    {groupEntryUrl && (
+                                                                                        <a
+                                                                                            href={groupEntryUrl}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                            className="text-blue-500 hover:text-blue-700 flex-shrink-0"
+                                                                                            title={groupEntryUrl}
+                                                                                        >
+                                                                                            <ExternalLink className="h-3 w-3" />
+                                                                                        </a>
+                                                                                    )}
+                                                                                </div>
                                                                                 <div className="text-xs text-gray-500">
                                                                                     {activeInGroup} / {images.length} active
                                                                                 </div>

@@ -269,6 +269,17 @@ export default function Step1Configuration() {
                                         <p className="text-sm text-muted-foreground">Enter keys to load environments.</p>
                                     )}
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="baseUrl">Base URL</Label>
+                                    <Input
+                                        id="baseUrl"
+                                        name="baseUrl"
+                                        placeholder="https://www.example.com"
+                                        value={formData.baseUrl || ''}
+                                        onChange={handleChange}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Optional. Used to build full page URLs from CMS paths.</p>
+                                </div>
                             </div>
                         </div>
 

@@ -6,6 +6,7 @@ export interface AppConfig {
     openaiModel: string;
     brandName: string;
     masterPrompt: string;
+    baseUrl?: string;
 }
 
 export interface Language {
@@ -54,6 +55,7 @@ export interface ImageUsage {
     locale: string;
     fieldName: string;
     key: string;
+    entryUrl?: string;
 }
 
 export interface BatchInfo {

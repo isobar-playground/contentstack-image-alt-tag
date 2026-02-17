@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Trash2, Download, X, Loader2, Upload } from 'lucide-react';
+import { Trash2, Download, X, Loader2, Upload, ExternalLink } from 'lucide-react';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import Image from 'next/image';
 import { useRef, useState, useEffect } from 'react';
@@ -156,6 +156,7 @@ Brand: ${state.config.brandName}`;
         ${state.images.map(image => `
             <div class="card">
                 <img src="${image.url}" alt="${image.generatedAltText || image.filename || 'Image preview'}" loading="lazy">
+                ${image.usages?.[0]?.entryUrl ? `<p><span class="label">Page URL:</span> <a href="${image.usages[0].entryUrl}" target="_blank" rel="noopener noreferrer">${image.usages[0].entryUrl}</a></p>` : ''}
                 <p class="label">User Prompt:</p>
                 <pre>${generateUserPrompt(image)}</pre>
                 <p class="label">Generated ALT Tag:</p>
@@ -231,12 +232,13 @@ Brand: ${state.config.brandName}`;
             worksheet.columns = [
                 { header: 'Contentstack Asset ID', key: 'id', width: 26 },
                 { header: 'Image URL', key: 'image', width: 43 },
+                { header: 'Page URL', key: 'pageUrl', width: 50 },
                 { header: 'Suggested Alt', key: 'suggestedAlt', width: 50 },
                 { header: 'Brand Override Alt', key: 'brandAlt', width: 50 }
             ];
             worksheet.getRow(1).font = { bold: true };
-            worksheet.getColumn(3).alignment = { wrapText: true, vertical: 'top' };
             worksheet.getColumn(4).alignment = { wrapText: true, vertical: 'top' };
+            worksheet.getColumn(5).alignment = { wrapText: true, vertical: 'top' };
 
             const createScaledImage = async (src: string, maxSize: number) => {
                 const img = new globalThis.Image();
@@ -268,20 +270,22 @@ Brand: ${state.config.brandName}`;
             const pixelsToEmu = (value: number) => Math.round(value * 9525);
 
             for (const image of activeImages) {
+                const pageUrl = image.usages?.[0]?.entryUrl || '';
                 worksheet.addRow({
                     id: image.uid,
                     image: '',
+                    pageUrl,
                     suggestedAlt: image.generatedAltText || '',
                     brandAlt: image.generatedAltText || ''
                 });
             }
             if (activeImages.length > 0) {
                 worksheet.addConditionalFormatting({
-                    ref: `C2:C${activeImages.length + 1}`,
+                    ref: `D2:D${activeImages.length + 1}`,
                     rules: [
                         {
                             type: 'expression',
-                            formulae: ['$C2<>$D2'],
+                            formulae: ['$D2<>$E2'],
                             style: {
                                 fill: {
                                     type: 'pattern',
@@ -487,10 +491,24 @@ Brand: ${state.config.brandName}`;
                                                 {image.filename}
                                             </div>
                                             {image.usages && image.usages.length > 0 && (
-                                                <div className="mt-1">
+                                                <div className="mt-1 space-y-1">
                                                     <Badge variant="outline" className="text-xs truncate max-w-full">
                                                         {image.usages[0].contentTypeTitle}
                                                     </Badge>
+                                                    {image.usages[0].entryUrl && (
+                                                        <div>
+                                                            <a
+                                                                href={image.usages[0].entryUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-blue-500 hover:text-blue-700 inline-flex items-center gap-1 truncate max-w-full"
+                                                                title={image.usages[0].entryUrl}
+                                                            >
+                                                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                                                <span className="truncate">{image.usages[0].entryUrl}</span>
+                                                            </a>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

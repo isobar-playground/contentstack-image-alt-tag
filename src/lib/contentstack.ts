@@ -124,23 +124,27 @@ export async function getAssetReferences(config: ContentstackConfig, assetUid: s
     }
 }
 
-export async function getEntryTitle(config: ContentstackConfig, contentTypeUid: string, entryUid: string, locale: string) {
+export async function getEntryInfo(config: ContentstackConfig, contentTypeUid: string, entryUid: string, locale: string): Promise<{ title: string; url?: string }> {
     const stack = getStack(config);
     try {
         const entry = await stack.contentType(contentTypeUid).entry(entryUid).fetch({ locale });
         const fields = entry.fields || entry;
 
         const titleFields = ['title', 'name', 'entryTitle', 'entry_title'];
+        let title = entryUid;
         for (const field of titleFields) {
             if (fields[field]) {
-                return typeof fields[field] === 'string' ? fields[field] : String(fields[field]);
+                title = typeof fields[field] === 'string' ? fields[field] : String(fields[field]);
+                break;
             }
         }
 
-        return entryUid;
+        const url = typeof fields.url === 'string' ? fields.url : undefined;
+
+        return { title, url };
     } catch (error: unknown) {
         console.error(`Error fetching entry ${entryUid}:`, parseContentstackError(error));
-        return entryUid;
+        return { title: entryUid };
     }
 }
 

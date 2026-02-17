@@ -96,13 +96,15 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
     const contentTypeInfoMap = new Map<string, { uid: string; title: string }>();
     contentTypeInfoResults.forEach(item => contentTypeInfoMap.set(item.uid, item.info));
 
-    const entryTitlePromises = Array.from(uniqueEntryRefs.values()).map(async ({ contentTypeUid, entryUid, locale: refLocale }) => {
-        const title = await contentstack.getEntryTitle(csConfig, contentTypeUid, entryUid, refLocale);
-        return { key: `${contentTypeUid}:${entryUid}:${refLocale}`, title };
+    const baseUrl = config.baseUrl ? config.baseUrl.replace(/\/+$/, '') : '';
+
+    const entryInfoPromises = Array.from(uniqueEntryRefs.values()).map(async ({ contentTypeUid, entryUid, locale: refLocale }) => {
+        const info = await contentstack.getEntryInfo(csConfig, contentTypeUid, entryUid, refLocale);
+        return { key: `${contentTypeUid}:${entryUid}:${refLocale}`, ...info };
     });
-    const entryTitleResults = await Promise.all(entryTitlePromises);
-    const entryTitleMap = new Map<string, string>();
-    entryTitleResults.forEach(item => entryTitleMap.set(item.key, item.title));
+    const entryInfoResults = await Promise.all(entryInfoPromises);
+    const entryInfoMap = new Map<string, { title: string; url?: string }>();
+    entryInfoResults.forEach(item => entryInfoMap.set(item.key, { title: item.title, url: item.url }));
 
     const usages = [];
 
@@ -118,16 +120,21 @@ export async function analyzeImageUsage(config: AppConfig, imageUid: string, loc
         processedReferenceKeys.delete(key);
 
         const contentTypeInfo = contentTypeInfoMap.get(contentTypeUid);
-        const entryTitle = entryTitleMap.get(key);
+        const entryInfo = entryInfoMap.get(key);
 
-        if (contentTypeInfo && entryTitle) {
+        if (contentTypeInfo && entryInfo) {
+            const entryUrl = entryInfo.url && baseUrl
+                ? `${baseUrl}${entryInfo.url.startsWith('/') ? '' : '/'}${entryInfo.url}`
+                : entryInfo.url || undefined;
+
             usages.push({
                 contentTypeUid,
                 contentTypeTitle: contentTypeInfo.title,
                 entryUid,
                 locale: refLocale,
                 fieldName: 'Reference',
-                key: `${contentTypeInfo.title} - ${entryTitle}`,
+                key: `${contentTypeInfo.title} - ${entryInfo.title}`,
+                entryUrl,
             });
         }
     }
